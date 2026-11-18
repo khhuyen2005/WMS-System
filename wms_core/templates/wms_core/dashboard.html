@@ -1,0 +1,1412 @@
+
+{% extends 'wms_core/base.html' %}
+{% block title %}XONXEN SHOP | Dashboard tồn kho{% endblock %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .bi-wrapper {
+        background: #fff;
+        border: 1px solid #edd5c5;
+        border-radius: 14px;
+        padding: 18px 20px 22px;
+        box-shadow: 0 3px 14px rgba(154,52,18,.05);
+    }
+
+    .bi-page-title {
+        color: #9a3412;
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .bi-banner {
+        border: 2px solid #e08232;
+        background: #fffdf9;
+        text-align: center;
+        padding: 12px;
+        font-size: 20px;
+        font-weight: 800;
+        color: #7c2d12;
+        margin-bottom: 14px;
+    }
+
+    .bi-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4,minmax(0,1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .bi-kpi-card {
+        border: 1px solid #edbd97;
+        background: #fffaf6;
+        padding: 15px 10px;
+        text-align: center;
+        border-radius: 10px;
+    }
+
+    .bi-kpi-label {
+        color: #713e20;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .bi-kpi-value {
+        color: #9a3412;
+        font-size: 26px;
+        font-weight: 800;
+        margin-top: 6px;
+    }
+
+    .bi-panel {
+        background: #fff;
+        border: 1.5px solid #e8b58b;
+        border-radius: 10px;
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .bi-panel-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #713e20;
+        padding: 12px 12px 8px;
+        text-align: center;
+    }
+
+    /* BO LOC NCC VA XUONG */
+
+    .bi-filter-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+    }
+
+    .bi-filter-box {
+        border: 1px solid #edbd97;
+        background: #fffaf6;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        width: min(100%,430px);
+    }
+
+    .bi-filter-box label {
+        margin: 0;
+        color: #713e20;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .bi-filter-select {
+        border: 1px solid #e6c7b4;
+        border-radius: 6px;
+        background: #fff;
+        padding: 7px;
+        min-width: 0;
+        flex: 1;
+        font-size: 12px;
+    }
+
+    /* TREEMAP */
+
+    .treemap-wrapper {
+        position: relative;
+        height: 360px;
+        margin: 8px 10px 12px;
+        background: #fff6ee;
+        overflow: hidden;
+        border-radius: 5px;
+    }
+
+    .treemap-node {
+        position: absolute;
+        overflow: hidden;
+        border: 2px solid #fff;
+        padding: 9px;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #fff;
+        text-align: left;
+        cursor: pointer;
+        transition: filter .15s;
+    }
+
+    .treemap-node:hover {
+        filter: brightness(1.08);
+        z-index: 2;
+    }
+
+    .treemap-node.active-filter {
+        outline: 3px solid #fbbf24;
+        outline-offset: -4px;
+    }
+
+    .treemap-name {
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .treemap-count {
+        font-size: 12px;
+        font-weight: 800;
+        margin-top: 6px;
+    }
+
+    /* BIEU DO TON KHO */
+
+    .bar-chart-container {
+        padding: 0 10px 12px;
+        height: 355px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bar-chart-header {
+        display: grid;
+        grid-template-columns: 44% 56%;
+        border-bottom: 1px solid #f2ddd0;
+        padding: 6px 0;
+        font-weight: 700;
+        font-size: 12px;
+        color: #713e20;
+    }
+
+    .bar-chart-body {
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .bar-row {
+        display: grid;
+        grid-template-columns: 44% 56%;
+        align-items: center;
+        min-height: 32px;
+        padding: 4px 0;
+        border-bottom: 1px solid #f9f0ea;
+    }
+
+    .bar-row:hover {
+        background: #fffbf8;
+    }
+
+    .bar-label {
+        padding-right: 8px;
+        text-align: right;
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .bar-track {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .bar-fill {
+        height: 14px;
+        border-radius: 3px;
+        background: #e08232;
+        flex-shrink: 0;
+    }
+
+    .bar-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: #713e20;
+        white-space: nowrap;
+    }
+
+    .bi-small-note {
+        color: #7c6f66;
+        font-size: 11px;
+        line-height: 1.6;
+        padding: 0 12px 12px;
+    }
+
+    /* TOP 10 */
+
+    .mini-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 0;
+        font-size: 11px;
+    }
+
+    .mini-label {
+        width: 38%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mini-track {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+    }
+
+    .empty-note {
+        padding: 25px 12px;
+        text-align: center;
+        font-size: 12px;
+        color: #8b7669;
+    }
+
+    @media (max-width: 1100px) {
+        .bi-kpi-grid {
+            grid-template-columns: repeat(2,1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .bi-wrapper {
+            padding: 12px;
+        }
+
+        .bi-banner {
+            font-size: 16px;
+        }
+
+        .bi-kpi-value {
+            font-size: 21px;
+        }
+
+        .bi-filter-box {
+            width: 100%;
+        }
+    }
+</style>
+
+
+<div class="bi-wrapper mb-6">
+
+    <!-- TIEU DE VA BO LOC KHO -->
+
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-orange-100 pb-3">
+
+        <h1 class="bi-page-title">
+            Hệ thống quản lý kho XONXEN SHOP - Dashboard
+        </h1>
+
+        <form method="get"
+              class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+
+            <label for="warehouse-filter" class="!mb-0">
+                Hiển thị dữ liệu:
+            </label>
+
+            <select
+                id="warehouse-filter"
+                name="kho"
+                onchange="this.form.submit()"
+                class="bg-white border border-orange-200 rounded px-2 py-1 text-sm"
+                {% if allowed_kind %}disabled{% endif %}
+            >
+                <option value="ALL"
+                    {% if kho_filter == 'ALL' %}selected{% endif %}>
+                    Tất cả các kho
+                </option>
+
+                <option value="NVL"
+                    {% if kho_filter == 'NVL' %}selected{% endif %}>
+                    Kho nguyên vật liệu
+                </option>
+
+                <option value="TP"
+                    {% if kho_filter == 'TP' %}selected{% endif %}>
+                    Kho thành phẩm
+                </option>
+            </select>
+
+            {% if allowed_kind %}
+            <span class="text-xs text-orange-900">
+                Theo phân quyền của bạn
+            </span>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="bi-banner">
+        BÁO CÁO TỒN KHO XONXEN SHOP
+    </div>
+
+
+    <!-- ===================================== -->
+    <!-- 4 KPI -->
+    <!-- ===================================== -->
+
+    <div class="bi-kpi-grid">
+
+        <div class="bi-kpi-card">
+            <div class="bi-kpi-label">
+                {{ partner_label }}
+            </div>
+            <div class="bi-kpi-value">
+                {{ partner_count }}
+            </div>
+        </div>
+
+        <div class="bi-kpi-card">
+            <div class="bi-kpi-label">
+                Mã SKU đang quản lý
+            </div>
+            <div class="bi-kpi-value">
+                {{ hang_count }}
+            </div>
+        </div>
+
+        <div class="bi-kpi-card">
+            <div class="bi-kpi-label">
+                Phiếu nhập đã duyệt
+            </div>
+            <div class="bi-kpi-value">
+                {{ nhap_count }}
+            </div>
+        </div>
+
+        <div class="bi-kpi-card">
+            <div class="bi-kpi-label">
+                Phiếu xuất đã duyệt
+            </div>
+            <div class="bi-kpi-value">
+                {{ xuat_count }}
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ===================================== -->
+    <!-- DASHBOARD NGUYEN VAT LIEU -->
+    <!-- ===================================== -->
+
+    {% if kho_filter == 'ALL' or kho_filter == 'NVL' %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+        <!-- TREEMAP NHA CUNG CAP -->
+
+        <div class="bi-panel lg:col-span-1">
+
+            <h2 class="bi-panel-title">
+                Số lượng mã NVL theo Nhà cung cấp
+            </h2>
+
+            <div
+                id="nvlTreemap"
+                class="treemap-wrapper"
+            ></div>
+
+
+        </div>
+
+
+        <!-- CHI GIU BO LOC NHA CUNG CAP -->
+
+        <div class="lg:col-span-2 flex flex-col min-w-0">
+
+            <div class="bi-filter-row">
+
+                <div class="bi-filter-box">
+
+                    <label for="fltNvlSupplier">
+                        Chọn NCC
+                    </label>
+
+                    <select
+                        id="fltNvlSupplier"
+                        class="bi-filter-select"
+                    >
+                        <option value="ALL">
+                            Tất cả
+                        </option>
+
+                        {% for supplier in nvl_suppliers %}
+                        <option value="{{ supplier }}">
+                            {{ supplier }}
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="bi-panel flex-1">
+
+                <h2 class="bi-panel-title">
+                    Nguyên vật liệu tồn kho
+                </h2>
+
+                <div class="bar-chart-container">
+
+                    <div class="bar-chart-header">
+
+                        <span class="text-right pr-2">
+                            Tên nguyên vật liệu / SKU
+                        </span>
+
+                        <span>
+                            Số lượng tồn
+                        </span>
+
+                    </div>
+
+                    <div
+                        id="nvlChart"
+                        class="bar-chart-body"
+                    ></div>
+
+                </div>
+
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- ===================================== -->
+    <!-- DASHBOARD THANH PHAM -->
+    <!-- ===================================== -->
+
+    {% if kho_filter == 'ALL' or kho_filter == 'TP' %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+        <!-- TREEMAP XUONG GIA CONG -->
+
+        <div class="bi-panel lg:col-span-1">
+
+            <h2 class="bi-panel-title">
+                Số lượng mã thành phẩm theo Xưởng gia công
+            </h2>
+
+            <div
+                id="tpTreemap"
+                class="treemap-wrapper"
+            ></div>
+
+
+
+        </div>
+
+
+        <!-- CHI GIU BO LOC XUONG GIA CONG -->
+
+        <div class="lg:col-span-2 flex flex-col min-w-0">
+
+            <div class="bi-filter-row">
+
+                <div class="bi-filter-box">
+
+                    <label for="fltTpSupplier">
+                        Chọn xưởng
+                    </label>
+
+                    <select
+                        id="fltTpSupplier"
+                        class="bi-filter-select"
+                    >
+                        <option value="ALL">
+                            Tất cả
+                        </option>
+
+                        {% for supplier in tp_suppliers %}
+                        <option value="{{ supplier }}">
+                            {{ supplier }}
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="bi-panel flex-1">
+
+                <h2 class="bi-panel-title">
+                    Thành phẩm tồn kho
+                </h2>
+
+                <div class="bar-chart-container">
+
+                    <div class="bar-chart-header">
+
+                        <span class="text-right pr-2">
+                            Tên thành phẩm / SKU
+                        </span>
+
+                        <span>
+                            Số lượng tồn
+                        </span>
+
+                    </div>
+
+                    <div
+                        id="tpChart"
+                        class="bar-chart-body"
+                    ></div>
+
+                </div>
+
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- ===================================== -->
+    <!-- XU HUONG NHAP XUAT VA TOP 10 -->
+    <!-- ===================================== -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <div class="bi-panel p-3">
+
+            <h2 class="bi-panel-title !text-left !p-0 mb-3">
+                Xu hướng nhập – xuất (30 ngày gần nhất)
+            </h2>
+
+            <div class="relative w-full h-64">
+                <canvas id="trendChart"></canvas>
+            </div>
+
+            <p
+                id="trendFallback"
+                class="bi-small-note hidden"
+            >
+                Không tải được Chart.js.
+                Vui lòng kiểm tra kết nối Internet.
+            </p>
+
+
+
+        </div>
+
+
+        <!-- TOP 10 -->
+
+        <div class="bi-panel p-3 flex flex-col gap-4">
+
+            <div>
+
+                <h2 class="bi-panel-title !text-left !p-0 mb-1 text-emerald-700">
+                    Top 10 mã luân chuyển nhanh
+                    (Số lượng xuất trong 30 ngày)
+                </h2>
+
+                <div
+                    id="topMoving"
+                    class="max-h-40 overflow-y-auto"
+                ></div>
+
+            </div>
+
+            <div class="border-t border-orange-100 pt-3">
+
+                <h2 class="bi-panel-title !text-left !p-0 mb-1 text-red-700">
+                    Top 10 mã còn tồn nhưng chưa xuất trong 30 ngày
+                </h2>
+
+                <div
+                    id="deadStock"
+                    class="max-h-40 overflow-y-auto"
+                ></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================== -->
+<!-- DU LIEU JSON TU VIEWS.PY -->
+<!-- ===================================== -->
+
+{{ dashboard_payload|json_script:'dashboard-data' }}
+
+
+<script>
+(function () {
+    'use strict';
+
+    // =====================================
+    // 1. DOC DU LIEU
+    // =====================================
+
+    const source =
+        document.getElementById('dashboard-data');
+
+    const DB = source
+        ? JSON.parse(source.textContent)
+        : {};
+
+    const COLORS = [
+        '#7c2d12',
+        '#9a3412',
+        '#c2410c',
+        '#ea580c',
+        '#f97316',
+        '#fb923c',
+        '#fdba74',
+        '#fed7aa'
+    ];
+
+    const formatter = new Intl.NumberFormat(
+        'vi-VN',
+        {
+            maximumFractionDigits: 2
+        }
+    );
+
+    const number = value => Number(value) || 0;
+
+    const format = value =>
+        formatter.format(number(value));
+
+
+    // =====================================
+    // 2. CAC HAM DUNG CHUNG
+    // =====================================
+
+    function element(tag, className, content) {
+
+        const node =
+            document.createElement(tag);
+
+        if (className) {
+            node.className = className;
+        }
+
+        if (content !== undefined) {
+            node.textContent = String(content);
+        }
+
+        return node;
+    }
+
+
+    function empty(target, message) {
+
+        target.replaceChildren(
+            element(
+                'div',
+                'empty-note',
+                message
+            )
+        );
+    }
+
+
+    // =====================================
+    // 3. CHIA DIEN TICH TREEMAP
+    // =====================================
+
+    function splitTreemap(
+        items,
+        x,
+        y,
+        width,
+        height,
+        result
+    ) {
+
+        if (
+            !items.length ||
+            width <= 0 ||
+            height <= 0
+        ) {
+            return;
+        }
+
+        if (items.length === 1) {
+
+            result.push({
+                ...items[0],
+                x,
+                y,
+                width,
+                height
+            });
+
+            return;
+        }
+
+        const total = items.reduce(
+            (sum, item) => sum + item.count,
+            0
+        );
+
+        if (total <= 0) {
+            return;
+        }
+
+        let firstTotal = 0;
+        let index = 1;
+
+        for (let i = 0; i < items.length - 1; i++) {
+
+            firstTotal += items[i].count;
+            index = i + 1;
+
+            if (firstTotal >= total / 2) {
+                break;
+            }
+        }
+
+        const ratio = firstTotal / total;
+
+        if (width >= height) {
+
+            const firstWidth = width * ratio;
+
+            splitTreemap(
+                items.slice(0, index),
+                x,
+                y,
+                firstWidth,
+                height,
+                result
+            );
+
+            splitTreemap(
+                items.slice(index),
+                x + firstWidth,
+                y,
+                width - firstWidth,
+                height,
+                result
+            );
+
+        } else {
+
+            const firstHeight = height * ratio;
+
+            splitTreemap(
+                items.slice(0, index),
+                x,
+                y,
+                width,
+                firstHeight,
+                result
+            );
+
+            splitTreemap(
+                items.slice(index),
+                x,
+                y + firstHeight,
+                width,
+                height - firstHeight,
+                result
+            );
+        }
+    }
+
+
+    // =====================================
+    // 4. VE TREEMAP NCC / XUONG
+    // =====================================
+
+    function drawTreemap(
+        containerId,
+        data,
+        field,
+        selected,
+        choose
+    ) {
+
+        const target =
+            document.getElementById(containerId);
+
+        if (!target) {
+            return;
+        }
+
+        const counts = new Map();
+
+        // Dem so ma SKU theo NCC / xuong
+        // Bao gom ca SKU co ton kho bang 0
+
+        data.forEach(item => {
+
+            const key = String(
+                item[field] || 'Chưa xác định'
+            ).trim();
+
+            counts.set(
+                key,
+                (counts.get(key) || 0) + 1
+            );
+        });
+
+        const groups = [...counts]
+            .map(([name, count]) => ({
+                name,
+                count
+            }))
+            .sort(
+                (a, b) => b.count - a.count
+            );
+
+        if (!groups.length) {
+
+            return empty(
+                target,
+                'Chưa có dữ liệu mã hàng.'
+            );
+        }
+
+        const rectangles = [];
+
+        splitTreemap(
+            groups,
+            0,
+            0,
+            target.clientWidth,
+            target.clientHeight,
+            rectangles
+        );
+
+        target.replaceChildren();
+
+        rectangles.forEach((rect, index) => {
+
+            const tile = element(
+                'button',
+                'treemap-node'
+            );
+
+            tile.type = 'button';
+
+            tile.style.left =
+                `${rect.x}px`;
+
+            tile.style.top =
+                `${rect.y}px`;
+
+            tile.style.width =
+                `${rect.width}px`;
+
+            tile.style.height =
+                `${rect.height}px`;
+
+            tile.style.backgroundColor =
+                COLORS[index % COLORS.length];
+
+            tile.style.color =
+                index % COLORS.length >= 6
+                    ? '#4b2a1a'
+                    : '#fff';
+
+            if (selected === rect.name) {
+                tile.classList.add('active-filter');
+            }
+
+            tile.title =
+                `${rect.name}: ${rect.count} mã SKU`;
+
+            tile.append(
+                element(
+                    'div',
+                    'treemap-name',
+                    rect.name
+                ),
+
+                element(
+                    'div',
+                    'treemap-count',
+                    `${rect.count} mã hàng`
+                )
+            );
+
+            tile.addEventListener(
+                'click',
+                () => choose(rect.name)
+            );
+
+            target.appendChild(tile);
+        });
+    }
+
+
+    // =====================================
+    // 5. VE BIEU DO TON KHO
+    // =====================================
+
+    function drawInventory(containerId, items) {
+
+        const target =
+            document.getElementById(containerId);
+
+        if (!target) {
+            return;
+        }
+
+        if (!items.length) {
+
+            return empty(
+                target,
+                'Không có dữ liệu theo bộ lọc.'
+            );
+        }
+
+        const sorted = [...items].sort(
+            (a, b) =>
+                number(b.so_luong_ton) -
+                number(a.so_luong_ton)
+        );
+
+        const maximum = Math.max(
+            1,
+            ...sorted.map(
+                item => number(item.so_luong_ton)
+            )
+        );
+
+        target.replaceChildren();
+
+        sorted.forEach(item => {
+
+            const row = element(
+                'div',
+                'bar-row'
+            );
+
+            const label = element(
+                'div',
+                'bar-label',
+                `${item.ma_hang} – ${item.ten_hang}`
+            );
+
+            label.title =
+                `${item.ma_hang} – ${item.ten_hang}`;
+
+            const track = element(
+                'div',
+                'bar-track'
+            );
+
+            const bar = element(
+                'div',
+                'bar-fill'
+            );
+
+            bar.style.width =
+                `${Math.max(
+                    0,
+                    number(item.so_luong_ton) /
+                    maximum * 75
+                )}%`;
+
+            track.append(
+                bar,
+
+                element(
+                    'span',
+                    'bar-value',
+                    `${format(item.so_luong_ton)} ${item.don_vi || ''}`
+                )
+            );
+
+            row.append(label, track);
+
+            target.appendChild(row);
+        });
+    }
+
+
+    // =====================================
+    // 6. LOC NVL - CHI THEO NCC
+    // =====================================
+
+    function refreshNVL() {
+
+        const select =
+            document.getElementById(
+                'fltNvlSupplier'
+            );
+
+        if (!select) {
+            return;
+        }
+
+        const rows = DB.nvl_items || [];
+
+        const filtered = rows.filter(
+            item =>
+                select.value === 'ALL' ||
+                item.ncc === select.value
+        );
+
+        drawInventory(
+            'nvlChart',
+            filtered
+        );
+
+        drawTreemap(
+            'nvlTreemap',
+            rows,
+            'ncc',
+            select.value,
+
+            name => {
+
+                select.value =
+                    select.value === name
+                        ? 'ALL'
+                        : name;
+
+                refreshNVL();
+            }
+        );
+    }
+
+
+    // =====================================
+    // 7. LOC TP - CHI THEO XUONG
+    // =====================================
+
+    function refreshTP() {
+
+        const select =
+            document.getElementById(
+                'fltTpSupplier'
+            );
+
+        if (!select) {
+            return;
+        }
+
+        const rows = DB.tp_items || [];
+
+        const filtered = rows.filter(
+            item =>
+                select.value === 'ALL' ||
+                item.xuong === select.value
+        );
+
+        drawInventory(
+            'tpChart',
+            filtered
+        );
+
+        drawTreemap(
+            'tpTreemap',
+            rows,
+            'xuong',
+            select.value,
+
+            name => {
+
+                select.value =
+                    select.value === name
+                        ? 'ALL'
+                        : name;
+
+                refreshTP();
+            }
+        );
+    }
+
+
+    // =====================================
+    // 8. TOP 10
+    // =====================================
+
+    function drawMiniBars(
+        containerId,
+        items,
+        key,
+        color
+    ) {
+
+        const target =
+            document.getElementById(
+                containerId
+            );
+
+        if (!target) {
+            return;
+        }
+
+        if (!items || !items.length) {
+
+            return empty(
+                target,
+                'Chưa có dữ liệu trong 30 ngày.'
+            );
+        }
+
+        const maximum = Math.max(
+            1,
+            ...items.map(
+                item => number(item[key])
+            )
+        );
+
+        target.replaceChildren();
+
+        items.forEach(item => {
+
+            const row = element(
+                'div',
+                'mini-row'
+            );
+
+            const label = element(
+                'div',
+                'mini-label',
+                item.ma_hang
+            );
+
+            label.title =
+                `${item.ma_hang} – ${item.ten_hang}`;
+
+            const track = element(
+                'div',
+                'mini-track'
+            );
+
+            const bar = element(
+                'div',
+                'bar-fill'
+            );
+
+            bar.style.backgroundColor =
+                color;
+
+            bar.style.height =
+                '12px';
+
+            bar.style.width =
+                `${Math.max(
+                    0,
+                    number(item[key]) /
+                    maximum * 70
+                )}%`;
+
+            track.append(
+                bar,
+
+                element(
+                    'span',
+                    'bar-value',
+                    `${format(item[key])} ${item.don_vi || ''}`
+                )
+            );
+
+            row.append(label, track);
+
+            target.appendChild(row);
+        });
+    }
+
+
+    // =====================================
+    // 9. XU HUONG NHAP XUAT 30 NGAY
+    // =====================================
+
+    function drawTrend() {
+
+        const canvas =
+            document.getElementById(
+                'trendChart'
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        if (typeof Chart === 'undefined') {
+
+            const warning =
+                document.getElementById(
+                    'trendFallback'
+                );
+
+            if (warning) {
+                warning.classList.remove('hidden');
+            }
+
+            return;
+        }
+
+        new Chart(canvas, {
+
+            type: 'line',
+
+            data: {
+
+                labels:
+                    DB.trend_dates || [],
+
+                datasets: [
+
+                    {
+                        label: 'Nhập kho',
+
+                        data:
+                            DB.trend_nhap || [],
+
+                        borderColor:
+                            '#e08232',
+
+                        backgroundColor:
+                            'rgba(224,130,50,.12)',
+
+                        fill: true,
+                        tension: 0.3
+                    },
+
+                    {
+                        label: 'Xuất kho',
+
+                        data:
+                            DB.trend_xuat || [],
+
+                        borderColor:
+                            '#1e293b',
+
+                        backgroundColor:
+                            'rgba(30,41,59,.08)',
+
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+
+    // =====================================
+    // 10. KHOI TAO DASHBOARD
+    // =====================================
+
+    const nvlSelect =
+        document.getElementById(
+            'fltNvlSupplier'
+        );
+
+    const tpSelect =
+        document.getElementById(
+            'fltTpSupplier'
+        );
+
+    if (nvlSelect) {
+
+        nvlSelect.addEventListener(
+            'change',
+            refreshNVL
+        );
+
+        refreshNVL();
+    }
+
+    if (tpSelect) {
+
+        tpSelect.addEventListener(
+            'change',
+            refreshTP
+        );
+
+        refreshTP();
+    }
+
+    drawMiniBars(
+        'topMoving',
+        DB.top_moving || [],
+        'tong_xuat',
+        '#059669'
+    );
+
+    drawMiniBars(
+        'deadStock',
+        DB.dead_stock || [],
+        'tong_ton',
+        '#dc2626'
+    );
+
+    drawTrend();
+
+
+    // =====================================
+    // 11. VE LAI KHI DOI KICH THUOC
+    // =====================================
+
+    let resizeFrame;
+
+    window.addEventListener(
+        'resize',
+        () => {
+
+            cancelAnimationFrame(resizeFrame);
+
+            resizeFrame = requestAnimationFrame(
+                () => {
+
+                    if (nvlSelect) {
+                        refreshNVL();
+                    }
+
+                    if (tpSelect) {
+                        refreshTP();
+                    }
+                }
+            );
+        }
+    );
+
+})();
+</script>
+
+{% endblock %}

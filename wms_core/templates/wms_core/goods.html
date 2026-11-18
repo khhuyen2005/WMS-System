@@ -1,0 +1,145 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+    <div>
+        <h1 class="text-2xl font-bold mb-1">
+            Danh mục
+            {% if kind == 'NVL' %}
+                nguyên vật liệu
+            {% else %}
+                thành phẩm
+            {% endif %}
+        </h1>
+
+
+    </div>
+
+    <a href="{% url 'wms_create_goods' kind=kind %}" class="btn">
+        {% if kind == 'NVL' %}
+            + Thêm nguyên vật liệu
+        {% else %}
+            + Thêm thành phẩm
+        {% endif %}
+    </a>
+</div>
+
+<!-- TÌM KIẾM HÀNG HÓA -->
+
+<form method="get" class="box p-4 mb-5 flex flex-wrap items-center gap-3">
+    <input
+        type="search"
+        class="field flex-1 min-w-[240px] max-w-lg"
+        name="q"
+        value="{{ search|default:'' }}"
+        placeholder="{% if kind == 'NVL' %}Tìm mã NVL hoặc tên nguyên vật liệu{% else %}Tìm mã SKU hoặc tên sản phẩm{% endif %}"
+        aria-label="{% if kind == 'NVL' %}Tìm nguyên vật liệu{% else %}Tìm thành phẩm{% endif %}"
+    >
+
+    <button type="submit" class="btn">
+        Tìm kiếm
+    </button>
+
+    {% if search %}
+        <a href="?" class="text-sm text-slate-500 hover:underline">
+            Xóa tìm kiếm
+        </a>
+    {% endif %}
+</form>
+
+<!-- BẢNG DANH MỤC HÀNG HÓA -->
+
+<div class="box overflow-x-auto">
+    <table class="table">
+        <thead>
+            <tr>
+                {% if kind == 'NVL' %}
+                    <th>Mã NVL (SKU)</th>
+                    <th>Tên nguyên vật liệu</th>
+                    <th>Màu sắc</th>
+                    <th>Đơn vị tính</th>
+                    <th>Đơn giá (VNĐ)</th>
+                    <th>Tổng tồn</th>
+                {% else %}
+                    <th>Mã thành phẩm (SKU)</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Màu sắc</th>
+                    <th>Kích cỡ (Size)</th>
+                    <th>Đơn giá (VNĐ)</th>
+                    <th>Tồn kho</th>
+                {% endif %}
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for r in rows %}
+                <tr>
+
+                    <!-- MÃ SKU -->
+                    <td class="font-semibold">
+                        {{ r.item.ma_hang }}
+                    </td>
+
+                    <!-- TÊN HÀNG HÓA -->
+                    <td>
+                        {{ r.item.ten_hang }}
+                    </td>
+
+                    <!-- MÀU SẮC -->
+                    <td>
+                        {{ r.item.mau_sac|default:'-' }}
+                    </td>
+
+                    <!-- ĐƠN VỊ TÍNH / KÍCH CỠ -->
+                    {% if kind == 'NVL' %}
+                        <td>
+                            {{ r.item.don_vi_tinh.ten_don_vi_tinh|default:'-' }}
+                        </td>
+                    {% else %}
+                        <td>
+                            {{ r.item.kich_co|default:'-' }}
+                        </td>
+                    {% endif %}
+
+                    <!-- ĐƠN GIÁ -->
+                    <td class="font-semibold">
+                        {% if r.item.don_gia is not None %}
+                            {{ r.item.don_gia|floatformat:"-2" }} đ
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <!-- SỐ LƯỢNG TỒN -->
+                    <td class="font-semibold">
+                        {{ r.qty }}
+                    </td>
+
+                </tr>
+
+            {% empty %}
+                <tr>
+                    <td colspan="6">
+                        {% if kind == 'NVL' %}
+                            {% if search %}
+                                Không tìm thấy nguyên vật liệu phù hợp.
+                            {% else %}
+                                Chưa có nguyên vật liệu nào.
+                            {% endif %}
+                        {% else %}
+                            {% if search %}
+                                Không tìm thấy thành phẩm phù hợp.
+                            {% else %}
+                                Chưa có thành phẩm nào.
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

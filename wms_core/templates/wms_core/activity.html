@@ -1,0 +1,145 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}
+Nhật ký giao dịch | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<!-- TIEU DE -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-orange-900">
+        Nhật ký giao dịch
+    </h1>
+</div>
+
+
+<!-- BANG NHAT KY -->
+<div class="box overflow-x-auto">
+
+    <table class="table w-full">
+
+        <thead>
+            <tr>
+
+                <th>Thời điểm</th>
+
+                <th>Người thực hiện</th>
+
+                <th>Loại</th>
+
+                <th>Hành động</th>
+
+                <!-- COT MOI -->
+                <th>Mã phiếu</th>
+
+                <th>Mã hàng</th>
+
+                <th>Vị trí</th>
+
+                <th>Trước</th>
+
+                <th>Sau</th>
+
+            </tr>
+        </thead>
+
+
+        <tbody>
+
+            {% for x in rows %}
+
+            <tr>
+
+                <!-- THOI DIEM -->
+                <td style="white-space:nowrap;">
+                    {{ x.thoi_gian|date:'d/m/Y H:i' }}
+                </td>
+
+
+                <!-- NGUOI THUC HIEN -->
+                <td>
+                    {{ x.nguoi_thuc_hien.ho_ten }}
+                </td>
+
+
+                <!-- LOAI -->
+                <td>
+                    {{ x.loai_giao_dich }}
+                </td>
+
+
+                <!-- HANH DONG -->
+                <td style="white-space:nowrap;">
+                    {{ x.hanh_dong }}
+                </td>
+
+
+                <!-- MA PHIEU -->
+                <td>
+                    {% if x.ma_phieu_hien_thi != '-' %}
+
+                    <span
+                        class="font-semibold"
+                        style="color:#A84313;white-space:nowrap;"
+                    >
+                        {{ x.ma_phieu_hien_thi }}
+                    </span>
+
+                    {% else %}
+
+                    <span class="text-slate-400">
+                        -
+                    </span>
+
+                    {% endif %}
+                </td>
+
+
+                <!-- MA HANG -->
+                <td>
+                    {{ x.hang_hoa.ma_hang|default:'-' }}
+                </td>
+
+
+                <!-- VI TRI -->
+                <td>
+                    {{ x.vi_tri.ma_vi_tri|default:'-' }}
+                </td>
+
+
+                <!-- SO LUONG TRUOC -->
+                <td>
+                    {{ x.so_luong_truoc|default_if_none:'-' }}
+                </td>
+
+
+                <!-- SO LUONG SAU -->
+                <td>
+                    {{ x.so_luong_sau|default_if_none:'-' }}
+                </td>
+
+            </tr>
+
+
+            {% empty %}
+
+            <tr>
+                <td
+                    colspan="9"
+                    class="text-center text-slate-500 py-8"
+                >
+                    Chưa có nhật ký giao dịch.
+                </td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

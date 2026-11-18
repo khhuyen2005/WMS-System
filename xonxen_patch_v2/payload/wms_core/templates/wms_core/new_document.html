@@ -1,0 +1,23 @@
+{% extends 'wms_core/base.html' %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-3">Tạo phiếu {% if direction == 'nhap' %}nhập{% else %}xuất{% endif %} kho</h1>
+<p class="text-slate-600 mb-4">Một phiếu có thể chứa nhiều dòng hàng. Phiếu nháp không cập nhật tồn; quản lý phê duyệt mới phát sinh tồn kho.</p>
+<form method="post" class="box p-6">{% csrf_token %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+<div><label>Mã phiếu</label><input class="field" name="ma_phieu" required placeholder="PN/PX-2026-001"></div>
+<div><label>Kho</label><select class="field" name="kho" id="warehouse" required><option value="">-- Chọn kho --</option>{% for x in warehouses %}<option value="{{ x.pk }}" data-kind="{{ x.loai_kho }}">{{ x.ten_kho }}</option>{% endfor %}</select></div>
+<div><label>Đối tác</label><select class="field" name="doi_tac" required><option value="">-- Chọn đối tác --</option>{% for x in partners %}<option value="{{ x.pk }}">{{ x.ten_doi_tac }} ({{ x.get_loai_doi_tac_display }})</option>{% endfor %}</select></div></div>
+<h2 class="font-bold mb-3">Các dòng hàng trên phiếu</h2>
+<div id="lines" class="space-y-3"></div>
+<button type="button" class="btn2 my-4" onclick="addLine()">+ Thêm dòng hàng</button>
+<div><label>Ghi chú</label><input class="field" name="ghi_chu"></div>
+<div class="flex gap-3 mt-6"><button class="btn" type="submit">Lưu phiếu nháp</button><a class="btn2" href="{% url 'wms_documents' direction %}">Quay lại</a></div></form>
+<template id="line-template"><div class="line grid grid-cols-1 md:grid-cols-4 gap-3 border rounded-lg p-3"><div><label>Hàng hóa</label><select name="hang_hoa" class="field good" required><option value="">-- Chọn --</option>{% for x in goods %}<option value="{{ x.pk }}" data-kind="{{ x.nhom_hang.loai_hang }}">{{ x.ma_hang }} - {{ x.ten_hang }}</option>{% endfor %}</select></div><div><label>Vị trí</label><select name="vi_tri" class="field pos" required><option value="">-- Chọn --</option>{% for x in locations %}<option value="{{ x.pk }}" data-kho="{{ x.ke.khu_vuc.kho_id }}">{{ x.ma_vi_tri }}</option>{% endfor %}</select></div><div><label>Số lượng</label><input class="field" name="so_luong" type="number" min="0.01" step="0.01" required></div><div class="flex items-end"><button type="button" class="btn2" onclick="removeLine(this)">Xóa dòng</button></div></div></template>
+<script>
+const wh=document.getElementById('warehouse'),container=document.getElementById('lines');
+function filterLine(line){const kind=wh.selectedOptions[0]?.dataset.kind,id=wh.value;for(const x of line.querySelectorAll('.good option')){if(x.value)x.hidden=x.dataset.kind!==kind};for(const x of line.querySelectorAll('.pos option')){if(x.value)x.hidden=x.dataset.kho!==id};line.querySelector('.good').value='';line.querySelector('.pos').value=''}
+function addLine(){if(container.children.length>=100)return alert('Tối đa 100 dòng');const line=document.getElementById('line-template').content.firstElementChild.cloneNode(true);container.append(line);filterLine(line)}
+function removeLine(button){if(container.children.length===1)return alert('Phiếu cần ít nhất một dòng');button.closest('.line').remove()}
+wh.addEventListener('change',()=>document.querySelectorAll('.line').forEach(filterLine));addLine();
+</script>
+{% endblock %}

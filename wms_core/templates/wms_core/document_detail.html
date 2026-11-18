@@ -1,0 +1,779 @@
+
+{% extends 'wms_core/base.html' %}
+{% load humanize %}
+
+{% block title %}
+Chi tiết phiếu {% if direction == 'nhap' %}nhập{% else %}xuất{% endif %} | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<!-- ====================================== -->
+<!-- 1. TIEU DE -->
+<!-- ====================================== -->
+
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-orange-900">
+            <i class="fa-solid fa-file-invoice mr-2"></i>
+            Chi tiết phiếu
+            {% if direction == 'nhap' %}
+                nhập kho
+            {% else %}
+                xuất kho
+            {% endif %}
+        </h1>
+
+
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+
+    <!-- Chỉ hiện khi chứng từ đã được phê duyệt -->
+    {% if doc.trang_thai == 'da_duyet' %}
+
+    <a
+        class="btn"
+        href="{% url 'wms_document_pdf' direction doc.pk %}"
+        style="display:inline-flex;align-items:center;gap:8px;"
+    >
+        <i class="fa-solid fa-file-pdf"></i>
+        Xuất PDF
+    </a>
+
+    {% endif %}
+
+    <!-- Nút quay lại giữ nguyên -->
+    <a
+        class="btn2"
+        href="{% url 'wms_documents' direction %}?kind={{ kind }}"
+    >
+        <i class="fa-solid fa-arrow-left mr-1"></i>
+        Quay lại danh sách
+    </a>
+
+</div>
+
+</div>
+
+
+<!-- ====================================== -->
+<!-- CHUNG TU CAN BANG KIEM KHO -->
+<!-- ====================================== -->
+
+{% if doc.kiem_kho_id %}
+
+<div
+    class="box p-4 mb-5"
+    style="border-left:4px solid #D65C1A;"
+>
+    <strong>
+        Chứng từ cân bằng kiểm kho (đã ghi nhận)
+    </strong>
+
+    <p class="text-sm mt-2">
+        Phát sinh tự động từ
+
+        <a
+            class="font-bold underline"
+            href="{% url 'wms_stock_check_detail' doc.kiem_kho_id %}"
+        >
+            {{ doc.kiem_kho.ma_phieu }}
+        </a>.
+
+        Tồn kho đã được cập nhật khi duyệt phiếu kiểm kho.
+        Chứng từ này không được duyệt hoặc hủy riêng.
+    </p>
+</div>
+
+{% endif %}
+
+
+<!-- ====================================== -->
+<!-- 2. THONG TIN PHIEU -->
+<!-- ====================================== -->
+
+<div class="box p-6 mb-6">
+
+    <div class="flex flex-wrap justify-between items-start gap-4 mb-5">
+
+        <div>
+            <p class="text-xs text-slate-500 mb-2">
+                Mã chứng từ
+            </p>
+
+            <h2 class="text-xl font-extrabold text-orange-900">
+                {% if direction == 'nhap' %}
+                    {{ doc.ma_phieu_nhap }}
+                {% else %}
+                    {{ doc.ma_phieu_xuat }}
+                {% endif %}
+            </h2>
+        </div>
+
+        <!-- TRANG THAI -->
+        <div>
+            {% if doc.trang_thai == 'nhap' %}
+
+            <span class="tag">
+                <i class="fa-regular fa-file-lines mr-1"></i>
+                Nháp
+            </span>
+
+            {% elif doc.trang_thai == 'cho_duyet' %}
+
+            <span class="tag">
+                <i class="fa-regular fa-clock mr-1"></i>
+                Chờ duyệt
+            </span>
+
+            {% elif doc.trang_thai == 'da_duyet' %}
+
+            <span
+                class="tag"
+                style="background:#E8F7ED;color:#187443;"
+            >
+                <i class="fa-solid fa-circle-check mr-1"></i>
+                Đã phê duyệt
+            </span>
+
+            {% elif doc.trang_thai == 'tu_choi' %}
+
+            <span
+                class="tag"
+                style="background:#FEECEC;color:#B42318;"
+            >
+                <i class="fa-solid fa-circle-xmark mr-1"></i>
+                Đã từ chối
+            </span>
+
+            {% elif doc.trang_thai == 'da_huy' %}
+
+            <span
+                class="tag"
+                style="background:#F1F1F1;color:#666;"
+            >
+                <i class="fa-solid fa-ban mr-1"></i>
+                Đã hủy
+            </span>
+
+            {% else %}
+
+            <span class="tag">
+                {{ doc.get_trang_thai_display }}
+            </span>
+
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- THONG TIN CHUNG -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- LOAI CHUNG TU -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Loại chứng từ
+            </p>
+
+            <p class="font-semibold">
+                {% if direction == 'nhap' %}
+                    Phiếu nhập kho
+                {% else %}
+                    Phiếu xuất kho
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- KHO -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Kho
+            </p>
+
+            <p class="font-semibold">
+                {{ doc.kho.ten_kho }}
+            </p>
+        </div>
+
+        <!-- LOAI KHO -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Loại kho
+            </p>
+
+            <p class="font-semibold">
+                {{ doc.kho.get_loai_kho_display }}
+            </p>
+        </div>
+
+
+        <!-- DOI TAC THEO NGHIEP VU -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+
+                {% if doc.kiem_kho_id %}
+                    Nguồn chứng từ
+
+                {% elif direction == 'nhap' and doc.kho.loai_kho == 'NVL' %}
+                    Nhà cung cấp nguyên vật liệu
+
+                {% elif direction == 'nhap' and doc.kho.loai_kho == 'TP' %}
+                    Xưởng gia công giao thành phẩm
+
+                {% elif direction == 'xuat' and doc.kho.loai_kho == 'NVL' %}
+                    Xưởng gia công nhận nguyên vật liệu
+
+                {% elif direction == 'xuat' and doc.kho.loai_kho == 'TP' %}
+                    Chi nhánh nhận thành phẩm
+
+                {% else %}
+                    Đối tác
+                {% endif %}
+            </p>
+
+            <p class="font-semibold">
+
+                {% if doc.kiem_kho_id %}
+                    Điều chỉnh nội bộ (không có đối tác)
+
+                {% elif doc.doi_tac %}
+                    {{ doc.doi_tac.ten_doi_tac }}
+
+                {% else %}
+                    <span class="text-slate-500">
+                        Chưa có thông tin
+                    </span>
+                {% endif %}
+            </p>
+
+            <!-- THONG TIN CHI NHANH -->
+            {% if direction == 'xuat' and doc.kho.loai_kho == 'TP' and doc.doi_tac and not doc.kiem_kho_id %}
+
+                {% if doc.doi_tac.thong_tin_lien_he %}
+                <p class="text-xs text-slate-500 mt-1 whitespace-pre-line">
+                    {{ doc.doi_tac.thong_tin_lien_he }}
+                </p>
+                {% endif %}
+
+            {% endif %}
+        </div>
+
+        <!-- NGUOI LAP -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Người lập phiếu
+            </p>
+
+            <p class="font-semibold">
+                {{ doc.nguoi_lap.ho_ten }}
+            </p>
+        </div>
+
+        <!-- NGAY LAP -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Ngày lập phiếu
+            </p>
+
+            <p class="font-semibold">
+                {{ doc.thoi_gian_lap|date:'d/m/Y H:i' }}
+            </p>
+        </div>
+
+        <!-- NGUOI XU LY -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Người xử lý
+            </p>
+
+            <p class="font-semibold">
+                {% if doc.nguoi_phe_duyet %}
+                    {{ doc.nguoi_phe_duyet.ho_ten }}
+                {% else %}
+                    Chưa xử lý
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- THOI GIAN XU LY -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Thời gian xử lý
+            </p>
+
+            <p class="font-semibold">
+                {% if doc.thoi_gian_phe_duyet %}
+                    {{ doc.thoi_gian_phe_duyet|date:'d/m/Y H:i' }}
+                {% else %}
+                    Chưa xử lý
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- TRANG THAI HIEN TAI -->
+        <div>
+            <p class="text-xs text-slate-500 mb-1">
+                Trạng thái hiện tại
+            </p>
+
+            <p class="font-semibold">
+                {{ doc.get_trang_thai_display }}
+            </p>
+        </div>
+    </div>
+
+
+    <!-- GHI CHU -->
+    {% if doc.ghi_chu %}
+    <div class="border-t border-orange-100 mt-5 pt-4">
+
+        <p class="text-xs text-slate-500 mb-2">
+            Ghi chú
+        </p>
+
+        <p class="text-sm whitespace-pre-line">
+            {{ doc.ghi_chu }}
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+
+<!-- ====================================== -->
+<!-- 3. DANH SACH HANG HOA -->
+<!-- ====================================== -->
+
+<div class="box overflow-hidden mb-6">
+
+    <div class="p-5 border-b border-orange-100">
+        <h2 class="text-lg font-bold text-orange-900">
+            <i class="fa-solid fa-boxes-stacked mr-2"></i>
+            Danh sách hàng hóa
+        </h2>
+
+        <p class="text-xs text-slate-500 mt-2">
+            Tổng số dòng sản phẩm: {{ lines|length }}
+        </p>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="table">
+
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã hàng</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Màu sắc</th>
+                    <th>Kích cỡ</th>
+                    <th>Kệ / tầng / vị trí</th>
+                    <th>ĐVT</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá (VNĐ)</th>
+                    <th>Thành tiền (VNĐ)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for line in lines %}
+
+                <tr>
+
+                    <!-- STT -->
+                    <td>
+                        {{ forloop.counter }}
+                    </td>
+
+                    <!-- MA HANG -->
+                    <td class="font-bold text-orange-800">
+                        {{ line.hang_hoa.ma_hang }}
+                    </td>
+
+                    <!-- TEN HANG -->
+                    <td>
+                        <div class="font-semibold">
+                            {{ line.hang_hoa.ten_hang }}
+                        </div>
+
+                        {% if line.hang_hoa.mau_ma %}
+                        <div class="text-xs text-slate-500 mt-1">
+                            Mẫu: {{ line.hang_hoa.mau_ma }}
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- MAU SAC -->
+                    <td>
+                        {{ line.hang_hoa.mau_sac|default:'-' }}
+                    </td>
+
+                    <!-- KICH CO -->
+                    <td>
+                        {{ line.hang_hoa.kich_co|default:'-' }}
+                    </td>
+
+                    <!-- KE / VI TRI -->
+                    <td>
+                        <div class="font-semibold">
+                            {{ line.vi_tri.ke.ten_ke }}
+                        </div>
+
+                        <div class="text-xs text-slate-500 mt-1">
+                            {{ line.vi_tri.ten_vi_tri }}
+                            ({{ line.vi_tri.ma_vi_tri }})
+                        </div>
+                    </td>
+
+                    <!-- DON VI TINH -->
+                    <td>
+                        {{ line.hang_hoa.don_vi_tinh.ten_don_vi_tinh }}
+                    </td>
+
+                    <!-- SO LUONG -->
+                    <td class="font-semibold">
+                        {% if direction == 'nhap' %}
+                            {{ line.so_luong_nhap|floatformat:"-2" }}
+                        {% else %}
+                            {{ line.so_luong_xuat|floatformat:"-2" }}
+                        {% endif %}
+                    </td>
+
+                    <!-- DON GIA -->
+                    <td>
+                        {% if line.don_gia != None %}
+                            {{ line.don_gia|floatformat:2|intcomma }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <!-- THANH TIEN -->
+                    <td class="font-bold text-orange-800">
+                        {% if line.thanh_tien != None %}
+                            {{ line.thanh_tien|floatformat:2|intcomma }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+
+                {% empty %}
+
+                <tr>
+                    <td
+                        colspan="10"
+                        class="text-center text-slate-500 py-8"
+                    >
+                        Phiếu chưa có dòng hàng hóa.
+                    </td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+    <!-- TONG TIEN CHUNG TU -->
+    <div class="p-5 border-t border-orange-100">
+
+        <div class="flex flex-wrap justify-between items-center gap-4">
+
+            <div>
+                <h3 class="font-bold text-orange-900">
+                    Tổng tiền chứng từ
+                </h3>
+
+            </div>
+
+            <div class="text-right">
+
+                {% if total_amount != None %}
+
+                <p class="text-2xl font-extrabold text-orange-700">
+                    {{ total_amount|floatformat:2|intcomma }} đ
+                </p>
+
+                {% else %}
+
+                <p class="text-sm font-semibold text-slate-500">
+                    Chưa đủ dữ liệu đơn giá
+                </p>
+
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ====================================== -->
+<!-- 4. LY DO TU CHOI -->
+<!-- ====================================== -->
+
+{% if doc.trang_thai == 'tu_choi' and reject_log %}
+
+<div
+    class="box p-5 mb-6"
+    style="border-color:#F5B7B1;background:#FFF8F8;"
+>
+    <h2 class="font-bold text-red-800 mb-3">
+        <i class="fa-solid fa-circle-exclamation mr-2"></i>
+        Thông tin từ chối phiếu
+    </h2>
+
+    <p class="text-sm text-red-900 whitespace-pre-line">
+        {{ reject_log.noi_dung_thay_doi }}
+    </p>
+
+    <p class="text-xs text-slate-500 mt-3">
+        Người xử lý:
+        {{ reject_log.nguoi_thuc_hien.ho_ten }}
+        |
+        {{ reject_log.thoi_gian|date:'d/m/Y H:i' }}
+    </p>
+</div>
+
+{% endif %}
+
+
+<!-- ====================================== -->
+<!-- 5. XU LY CHUNG TU -->
+<!-- ====================================== -->
+
+<div class="box p-6">
+
+    <h2 class="font-bold text-lg text-orange-900 mb-4">
+        <i class="fa-solid fa-list-check mr-2"></i>
+        Xử lý chứng từ
+    </h2>
+
+
+    <!-- TRUONG HOP 1: PHIEU NHAP -->
+    {% if doc.trang_thai == 'nhap' %}
+
+        {% if is_manager or doc.nguoi_lap_id == request.wms_account.pk %}
+
+
+        <div class="flex flex-wrap items-center gap-3">
+
+            <!-- GUI DUYET -->
+            <form
+                method="post"
+                action="{% url 'wms_document_action' direction doc.pk 'send' %}"
+            >
+                {% csrf_token %}
+
+                <button
+                    class="btn"
+                    type="submit"
+                    onclick="return confirm('Gửi phiếu cho quản lý? Sau khi gửi sẽ không sửa hoặc xóa được nữa.')"
+                >
+                    <i class="fa-solid fa-paper-plane mr-1"></i>
+                    Gửi duyệt
+                </button>
+            </form>
+
+            <!-- CHINH SUA -->
+            <a
+                class="btn2"
+                href="{% url 'wms_edit_document' direction doc.pk %}"
+            >
+                <i class="fa-solid fa-pen-to-square mr-1"></i>
+                Chỉnh sửa
+            </a>
+
+            <!-- XOA PHIEU NHAP -->
+            <form
+                method="post"
+                action="{% url 'wms_delete_draft_document' direction doc.pk %}"
+                onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn phiếu nháp này?')"
+            >
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="btn2"
+                    style="color:#B42318;border-color:#F4C0B7;"
+                >
+                    <i class="fa-solid fa-trash-can mr-1"></i>
+                    Xóa phiếu
+                </button>
+            </form>
+
+        </div>
+
+        {% else %}
+
+        <p class="text-sm text-slate-500">
+            Phiếu đang ở trạng thái nháp và chờ người lập gửi duyệt.
+        </p>
+
+        {% endif %}
+
+
+    <!-- TRUONG HOP 2: CHO DUYET -->
+    {% elif doc.trang_thai == 'cho_duyet' %}
+
+        {% if is_manager %}
+
+        <p class="text-sm text-slate-500 mb-5">
+            Vui lòng kiểm tra hàng hóa, vị trí,
+            số lượng và đơn giá trước khi xử lý.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+            <!-- PHE DUYET -->
+            <div class="border border-green-200 rounded-xl p-4">
+
+                <h3 class="font-bold text-green-800 mb-2">
+                    <i class="fa-solid fa-circle-check mr-1"></i>
+                    Phê duyệt phiếu
+                </h3>
+
+                <p class="text-xs text-slate-500 mb-4">
+                    {% if direction == 'nhap' %}
+                        Khi phê duyệt, hệ thống cộng số lượng
+                        vào đúng vị trí lưu trữ.
+                    {% else %}
+                        Khi phê duyệt, hệ thống kiểm tra
+                        tồn khả dụng và trừ số lượng xuất.
+                    {% endif %}
+                </p>
+
+                <form
+                    method="post"
+                    action="{% url 'wms_document_action' direction doc.pk 'approve' %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        class="btn"
+                        type="submit"
+                        onclick="return confirm('Xác nhận phê duyệt phiếu và cập nhật tồn kho?')"
+                    >
+                        <i class="fa-solid fa-check mr-1"></i>
+                        Phê duyệt
+                    </button>
+                </form>
+            </div>
+
+
+            <!-- TU CHOI -->
+            <div class="border border-red-200 rounded-xl p-4">
+
+                <h3 class="font-bold text-red-800 mb-2">
+                    <i class="fa-solid fa-circle-xmark mr-1"></i>
+                    Từ chối phiếu
+                </h3>
+
+                <p class="text-xs text-slate-500 mb-3">
+                    Khi từ chối, tồn kho không thay đổi.
+                    Bạn bắt buộc nhập lý do.
+                </p>
+
+                <form
+                    method="post"
+                    action="{% url 'wms_document_action' direction doc.pk 'reject' %}"
+                >
+                    {% csrf_token %}
+
+                    <label for="reject-reason">
+                        Lý do từ chối *
+                    </label>
+
+                    <textarea
+                        class="field mb-3"
+                        id="reject-reason"
+                        name="ly_do"
+                        rows="3"
+                        maxlength="500"
+                        placeholder="Nhập lý do từ chối..."
+                        required
+                    ></textarea>
+
+                    <button
+                        class="btn2"
+                        type="submit"
+                        style="color:#B42318;border-color:#F5B7B1;"
+                        onclick="return confirm('Xác nhận từ chối phiếu này?')"
+                    >
+                        <i class="fa-solid fa-xmark mr-1"></i>
+                        Từ chối phiếu
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% else %}
+
+        <p class="text-sm text-slate-500">
+            <i class="fa-regular fa-clock mr-1"></i>
+            Phiếu đang chờ quản lý kho phê duyệt.
+            Bạn không thể chỉnh sửa hoặc xóa phiếu.
+        </p>
+
+        {% endif %}
+
+
+    <!-- TRUONG HOP 3: DA PHE DUYET -->
+    {% elif doc.trang_thai == 'da_duyet' %}
+
+    <div class="flex items-start gap-3">
+        <i class="fa-solid fa-circle-check text-green-600 text-xl"></i>
+
+        <div>
+            <p class="font-bold text-green-800">
+                Phiếu đã được phê duyệt
+            </p>
+
+        </div>
+    </div>
+
+
+    <!-- TRUONG HOP 4: DA TU CHOI -->
+    {% elif doc.trang_thai == 'tu_choi' %}
+
+    <div class="flex items-start gap-3">
+        <i class="fa-solid fa-circle-xmark text-red-600 text-xl"></i>
+
+        <div>
+            <p class="font-bold text-red-800">
+                Phiếu đã bị từ chối
+            </p>
+
+            <p class="text-sm text-slate-500 mt-1">
+                Tồn kho không thay đổi.
+                Phiếu được lưu lại để tra cứu lịch sử.
+            </p>
+        </div>
+    </div>
+
+
+    <!-- TRUONG HOP 5: DA HUY -->
+    {% elif doc.trang_thai == 'da_huy' %}
+
+    <div class="flex items-start gap-3">
+        <i class="fa-solid fa-ban text-slate-500 text-xl"></i>
+
+        <div>
+            <p class="font-bold text-slate-700">
+                Phiếu đã hủy
+            </p>
+
+            <p class="text-sm text-slate-500 mt-1">
+                Đây là chứng từ lịch sử.
+                Bạn chỉ có thể xem thông tin.
+            </p>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+{% endblock %}

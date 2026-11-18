@@ -1,0 +1,459 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}
+Danh sách kiểm kho | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<!-- ========================================== -->
+<!-- 1. TIÊU ĐỀ DANH SÁCH KIỂM KHO -->
+<!-- ========================================== -->
+
+<div class="w-full">
+
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+
+        <div>
+            <h1 class="text-2xl font-bold text-orange-900 mb-2">
+                Danh sách kiểm kho
+            </h1>
+
+
+        </div>
+
+        <a
+            href="{% url 'wms_create_stock_check' %}"
+            class="btn"
+        >
+            <i class="fa-solid fa-plus mr-2"></i>
+            Tạo phiếu kiểm kho
+        </a>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- 2. THÔNG BÁO PHIẾU CHỜ DUYỆT -->
+    <!-- ========================================== -->
+
+    {% if is_manager and pending_count %}
+
+    <div
+        class="box p-4 mb-6"
+        style="border-left:4px solid #F97316;"
+    >
+
+        <div class="flex flex-wrap items-center gap-2">
+
+            <span>
+                Có
+                <strong>{{ pending_count }}</strong>
+                phiếu kiểm kho đang chờ bạn phê duyệt.
+            </span>
+
+            <a
+                href="{% url 'wms_stock_checks' %}?status=cho_duyet"
+                class="font-bold text-orange-800 underline"
+            >
+                Xem ngay
+            </a>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- ========================================== -->
+    <!-- 3. BỘ LỌC DANH SÁCH KIỂM KHO -->
+    <!-- ========================================== -->
+
+    <div class="box p-5 mb-6">
+
+        <form
+            method="get"
+            action="{% url 'wms_stock_checks' %}"
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-end"
+        >
+
+            <!-- LỌC TRẠNG THÁI -->
+
+            <div>
+
+                <label for="filter-status">
+                    Trạng thái
+                </label>
+
+                <select
+                    id="filter-status"
+                    name="status"
+                    class="field w-full"
+                >
+
+                    <option value="">
+                        Tất cả trạng thái
+                    </option>
+
+                    <option
+                        value="cho_duyet"
+                        {% if status == 'cho_duyet' %}
+                            selected
+                        {% endif %}
+                    >
+                        Chờ duyệt
+                    </option>
+
+                    <option
+                        value="da_duyet"
+                        {% if status == 'da_duyet' %}
+                            selected
+                        {% endif %}
+                    >
+                        Đã cân bằng
+                    </option>
+
+                    <option
+                        value="tu_choi"
+                        {% if status == 'tu_choi' %}
+                            selected
+                        {% endif %}
+                    >
+                        Đã từ chối
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- LỌC TỪ NGÀY -->
+
+            <div>
+
+                <label for="filter-start">
+                    Ngày bắt đầu
+                </label>
+
+                <input
+                    id="filter-start"
+                    class="field w-full"
+                    type="date"
+                    name="tu_ngay"
+                    value="{{ start_date|default:'' }}"
+                >
+
+            </div>
+
+
+            <!-- LỌC ĐẾN NGÀY -->
+
+            <div>
+
+                <label for="filter-end">
+                    Ngày kết thúc
+                </label>
+
+                <input
+                    id="filter-end"
+                    class="field w-full"
+                    type="date"
+                    name="den_ngay"
+                    value="{{ end_date|default:'' }}"
+                >
+
+            </div>
+
+
+            <!-- NÚT LỌC VÀ XÓA LỌC -->
+
+            <div class="flex flex-wrap items-end gap-2">
+
+                <button
+                    type="submit"
+                    class="btn"
+                >
+                    <i class="fa-solid fa-magnifying-glass mr-1"></i>
+                    Lọc
+                </button>
+
+                <a
+                    href="{% url 'wms_stock_checks' %}"
+                    class="btn2"
+                >
+                    Xóa lọc
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- 4. BẢNG DANH SÁCH PHIẾU KIỂM KHO -->
+    <!-- ========================================== -->
+
+    <div class="box overflow-x-auto mb-6">
+
+        <table class="table w-full">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Mã kiểm kho
+                    </th>
+
+                    {% if not allowed_kind %}
+                    <th>
+                        Kho
+                    </th>
+                    {% endif %}
+
+                    <th>
+                        Loại kiểm kê
+                    </th>
+
+                    <th>
+                        Thời gian
+                    </th>
+
+                    <th>
+                        Người tạo
+                    </th>
+
+                    <th>
+                        Cân bằng kho
+                    </th>
+
+                    <th>
+                        Hành động
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for x in rows %}
+
+                <tr>
+
+                    <!-- MÃ KIỂM KHO -->
+
+                    <td class="font-bold text-orange-800">
+
+                        {{ x.ma_phieu }}
+
+                    </td>
+
+
+                    <!-- KHO KIỂM KÊ -->
+
+                    {% if not allowed_kind %}
+
+                    <td>
+
+                        {{ x.kho.ten_kho }}
+
+                    </td>
+
+                    {% endif %}
+
+
+                    <!-- LOẠI KIỂM KÊ -->
+
+                    <td>
+
+                        <span class="font-medium">
+
+                            {{ x.get_loai_kiem_ke_display }}
+
+                        </span>
+
+                    </td>
+
+
+                    <!-- THỜI GIAN LẬP -->
+
+                    <td>
+
+                        {{ x.thoi_gian_lap|date:'d/m/Y H:i' }}
+
+                    </td>
+
+
+                    <!-- NGƯỜI TẠO -->
+
+                    <td>
+
+                        {{ x.nguoi_lap.ho_ten }}
+
+                    </td>
+
+
+                    <!-- TRẠNG THÁI CÂN BẰNG -->
+
+                    <td>
+
+                        {% if x.trang_thai == 'cho_duyet' %}
+
+                            <span
+                                class="tag"
+                                style="background:#FFF0E5;color:#C75015;"
+                            >
+
+                                <i class="fa-regular fa-clock mr-1"></i>
+
+                                Chờ duyệt
+
+                            </span>
+
+
+                        {% elif x.trang_thai == 'da_duyet' %}
+
+                            <span
+                                class="tag"
+                                style="background:#E8F7ED;color:#187443;"
+                            >
+
+                                <i class="fa-solid fa-circle-check mr-1"></i>
+
+                                Đã cân bằng
+
+                            </span>
+
+
+                            {% if x.thoi_gian_phe_duyet %}
+
+                            <div class="text-xs text-slate-500 mt-1">
+
+                                {{ x.thoi_gian_phe_duyet|date:'H:i d/m' }}
+
+                            </div>
+
+                            {% endif %}
+
+
+                        {% elif x.trang_thai == 'tu_choi' %}
+
+                            <span
+                                class="tag"
+                                style="background:#FEECEC;color:#B42318;"
+                            >
+
+                                <i class="fa-solid fa-circle-xmark mr-1"></i>
+
+                                Đã từ chối
+
+                            </span>
+
+
+                        {% else %}
+
+                            <span class="tag">
+
+                                {{ x.get_trang_thai_display }}
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- NÚT XEM CHI TIẾT -->
+
+
+<!-- HÀNH ĐỘNG -->
+<td>
+    <div class="flex flex-nowrap items-center gap-2"
+         style="white-space:nowrap;">
+
+        <!-- NÚT CHI TIẾT: LUÔN HIỂN THỊ -->
+        <a
+            class="btn2"
+            href="{% url 'wms_stock_check_detail' x.pk %}"
+        >
+            <i class="fa-solid fa-eye mr-1"></i>
+            Chi tiết
+        </a>
+
+        <!-- CHỈ PHIẾU CHỜ DUYỆT MỚI ĐƯỢC SỬA/XÓA -->
+        {% if x.trang_thai == 'cho_duyet' %}
+
+            {% if is_manager or x.nguoi_lap_id == request.wms_account.pk %}
+
+                <!-- NÚT SỬA -->
+                <a
+                    class="btn2"
+                    href="{% url 'wms_edit_stock_check' x.pk %}"
+                >
+                    <i class="fa-solid fa-pen-to-square mr-1"></i>
+                    Sửa
+                </a>
+
+                <!-- NÚT XÓA -->
+                <form
+                    method="post"
+                    action="{% url 'wms_delete_stock_check' x.pk %}"
+                    onsubmit="return confirm('Bạn có chắc muốn xóa phiếu kiểm kho này? Phiếu sẽ bị xóa và các sản phẩm liên quan được mở khóa.');"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="btn2"
+                        style="color:#B42318;border-color:#F4C0B7;"
+                    >
+                        <i class="fa-solid fa-trash-can mr-1"></i>
+                        Xóa
+                    </button>
+                </form>
+
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+</td>
+
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td
+                        colspan="{% if allowed_kind %}6{% else %}7{% endif %}"
+                        class="text-center text-slate-500 py-8"
+                    >
+
+                        <i class="fa-regular fa-folder-open mr-2"></i>
+
+                        Chưa có phiếu kiểm kho nào phù hợp.
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

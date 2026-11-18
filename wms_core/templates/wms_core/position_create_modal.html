@@ -1,0 +1,922 @@
+
+<style>
+    .xpos-dialog {
+        width: min(580px, calc(100% - 24px));
+        max-height: 90vh;
+        border: none;
+        border-radius: 16px;
+        padding: 0;
+        overflow-y: auto;
+        box-shadow: 0 20px 65px rgba(0, 0, 0, .25);
+    }
+
+    .xpos-dialog::backdrop {
+        background: rgba(20, 15, 10, .55);
+    }
+
+    .xpos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 22px;
+        background: #FFF0E5;
+        border-bottom: 1px solid #F0D2BE;
+    }
+
+    .xpos-header h2 {
+        color: #8C3E16;
+        font-size: 19px;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .xpos-content {
+        padding: 22px;
+    }
+
+    .xpos-field {
+        margin-bottom: 18px;
+    }
+
+    .xpos-field label {
+        display: block;
+        margin-bottom: 7px;
+        color: #713F27;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .xpos-field input,
+    .xpos-field select {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        padding: 11px 12px;
+        border: 1px solid #E7CDBB;
+        border-radius: 9px;
+        background: white;
+        color: #463427;
+    }
+
+    .xpos-field input:focus,
+    .xpos-field select:focus {
+        outline: 2px solid #F5BB95;
+        border-color: #EA732C;
+    }
+
+    .xpos-field select:disabled {
+        background: #F7F5F3;
+        color: #9A918B;
+    }
+
+    .xpos-create-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 9px;
+        padding: 8px 12px;
+        color: #B64D15;
+        background: #FFF5EE;
+        border: 1px solid #F0BA98;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .xpos-create-btn:hover:not(:disabled) {
+        background: #FFE7D6;
+    }
+
+    .xpos-create-btn:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
+    .xpos-create-btn.active {
+        background: #FFE5D3;
+        border-color: #E86A20;
+    }
+
+    .xpos-new-box {
+        margin-top: 10px;
+        padding: 13px;
+        background: #FFF8F2;
+        border: 1px solid #F0D9C8;
+        border-radius: 10px;
+    }
+
+    .xpos-new-box[hidden] {
+        display: none !important;
+    }
+
+    .xpos-new-box label {
+        color: #A44717;
+    }
+
+    .xpos-help {
+        color: #876F60;
+        font-size: 12px;
+        margin-top: 7px;
+        line-height: 1.5;
+    }
+
+    .xpos-number-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .xpos-code {
+        padding: 13px;
+        border: 1px dashed #E8BFA4;
+        border-radius: 9px;
+        background: #FFF7F0;
+        color: #984519;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .xpos-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    @media (max-width: 480px) {
+        .xpos-content {
+            padding: 15px;
+        }
+    }
+</style>
+
+
+<!-- POPUP THEM KHU VUC / KE / VI TRI -->
+
+<dialog id="xpos-dialog" class="xpos-dialog">
+
+    <div class="xpos-header">
+
+        <h2>Thêm khu vực / kệ / vị trí</h2>
+
+        <button
+            type="button"
+            id="xpos-close"
+            aria-label="Đóng"
+            style="font-size:25px;color:#8B4C2C;"
+        >
+            &times;
+        </button>
+
+    </div>
+
+
+    <form
+        id="xpos-form"
+        method="post"
+        action="{% url 'wms_create_position' %}"
+        class="xpos-content"
+    >
+
+        {% csrf_token %}
+
+
+        <!-- 1. CHON KHO -->
+
+        <div class="xpos-field">
+
+            <label for="xpos-warehouse">
+                1. Kho *
+            </label>
+
+            <select
+                id="xpos-warehouse"
+                name="kho"
+                required
+            >
+                <option value="">
+                    -- Chọn kho --
+                </option>
+
+                {% for item in position_warehouses %}
+                <option value="{{ item.id }}">
+                    {{ item.ten_kho }}
+                </option>
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <!-- 2. KHU VUC -->
+
+        <div class="xpos-field">
+
+            <label for="xpos-area">
+                2. Khu vực *
+            </label>
+
+            <!-- CHI HIEN THI KHU VUC CO SAN -->
+            <select
+                id="xpos-area"
+                name="khu_vuc"
+                required
+                disabled
+            >
+                <option value="">
+                    -- Chọn khu vực có sẵn --
+                </option>
+            </select>
+
+
+            <!-- GIA TRI GUI KHI TAO KHU VUC MOI -->
+            <input
+                type="hidden"
+                id="xpos-area-mode"
+                name="khu_vuc"
+                value="__new__"
+                disabled
+            >
+
+
+            <!-- NUT TAO KHU VUC MOI -->
+            <button
+                type="button"
+                id="xpos-add-area"
+                class="xpos-create-btn"
+                disabled
+            >
+                <i class="fa-solid fa-plus"></i>
+                <span>Tạo khu vực mới</span>
+            </button>
+
+
+            <!-- O NHAP KHU VUC MOI -->
+            <div
+                id="xpos-area-new-box"
+                class="xpos-new-box"
+                hidden
+            >
+
+                <label for="xpos-area-new">
+                    Tên khu vực mới *
+                </label>
+
+                <input
+                    id="xpos-area-new"
+                    type="text"
+                    name="ten_khu_vuc_moi"
+                    maxlength="120"
+                    placeholder="Ví dụ: Khu phụ kiện mới"
+                    disabled
+                >
+
+
+
+            </div>
+
+        </div>
+
+
+        <!-- 3. KE -->
+
+        <div class="xpos-field">
+
+            <label for="xpos-rack">
+                3. Kệ *
+            </label>
+
+            <!-- CHI HIEN THI KE CO SAN -->
+            <select
+                id="xpos-rack"
+                name="ke"
+                required
+                disabled
+            >
+                <option value="">
+                    -- Chọn kệ có sẵn --
+                </option>
+            </select>
+
+
+            <!-- GIA TRI GUI KHI TAO KE MOI -->
+            <input
+                type="hidden"
+                id="xpos-rack-mode"
+                name="ke"
+                value="__new__"
+                disabled
+            >
+
+
+            <!-- NUT TAO KE MOI -->
+            <button
+                type="button"
+                id="xpos-add-rack"
+                class="xpos-create-btn"
+                disabled
+            >
+                <i class="fa-solid fa-plus"></i>
+                <span>Tạo kệ mới</span>
+            </button>
+
+
+            <!-- O NHAP KE MOI -->
+            <div
+                id="xpos-rack-new-box"
+                class="xpos-new-box"
+                hidden
+            >
+
+                <label for="xpos-rack-new">
+                    Tên kệ mới *
+                </label>
+
+                <input
+                    id="xpos-rack-new"
+                    type="text"
+                    name="ten_ke_moi"
+                    maxlength="100"
+                    placeholder="Ví dụ: Kệ phụ kiện 1"
+                    disabled
+                >
+
+
+            </div>
+
+        </div>
+
+
+
+<!-- 4. TANG -->
+
+<div class="xpos-field">
+    <label for="xpos-level">
+        4. Tầng *
+    </label>
+
+    <input
+        id="xpos-level"
+        type="number"
+        name="tang"
+        min="1"
+        max="999"
+        step="1"
+        placeholder="Ví dụ: 3"
+        required
+    >
+</div>
+
+        <!-- 5. MA VI TRI -->
+
+        <div class="xpos-field">
+
+            <label>Mã vị trí</label>
+
+            <div class="xpos-code">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>
+                Hệ thống tự động sinh mã khi lưu
+            </div>
+
+
+
+        </div>
+
+
+        <!-- 6. NUT LUU -->
+
+        <div class="xpos-actions">
+
+            <button
+                type="button"
+                class="btn2"
+                id="xpos-cancel"
+            >
+                Hủy
+            </button>
+
+            <button
+                type="submit"
+                class="btn"
+            >
+                <i class="fa-solid fa-floppy-disk mr-1"></i>
+                Lưu khu vực / kệ / vị trí
+            </button>
+
+        </div>
+
+    </form>
+
+</dialog>
+
+
+<!-- DU LIEU TU DJANGO -->
+
+{{ position_areas|json_script:"xpos-areas-json" }}
+{{ position_racks|json_script:"xpos-racks-json" }}
+
+
+<script>
+(function () {
+    "use strict";
+
+    const dialog = document.getElementById('xpos-dialog');
+    const form = document.getElementById('xpos-form');
+
+    const warehouse = document.getElementById(
+        'xpos-warehouse'
+    );
+
+    const area = document.getElementById('xpos-area');
+    const rack = document.getElementById('xpos-rack');
+
+    const areaMode = document.getElementById(
+        'xpos-area-mode'
+    );
+
+    const rackMode = document.getElementById(
+        'xpos-rack-mode'
+    );
+
+    const addAreaBtn = document.getElementById(
+        'xpos-add-area'
+    );
+
+    const addRackBtn = document.getElementById(
+        'xpos-add-rack'
+    );
+
+    const areaNewBox = document.getElementById(
+        'xpos-area-new-box'
+    );
+
+    const rackNewBox = document.getElementById(
+        'xpos-rack-new-box'
+    );
+
+    const areaNew = document.getElementById(
+        'xpos-area-new'
+    );
+
+    const rackNew = document.getElementById(
+        'xpos-rack-new'
+    );
+
+    const areas = JSON.parse(
+        document.getElementById(
+            'xpos-areas-json'
+        ).textContent
+    );
+
+    const racks = JSON.parse(
+        document.getElementById(
+            'xpos-racks-json'
+        ).textContent
+    );
+
+
+    // TRANG THAI TAO MOI
+    let creatingArea = false;
+    let creatingRack = false;
+
+
+    // -----------------------------------------
+    // CHI NAP KHU VUC / KE CO SAN
+    // KHONG THEM LUA CHON "+ TAO MOI"
+    // -----------------------------------------
+
+    function fillOptions(
+        select,
+        items,
+        placeholder,
+        label
+    ) {
+
+        select.replaceChildren(
+            new Option(placeholder, '')
+        );
+
+        for (const item of items) {
+
+            select.add(
+                new Option(
+                    item[label],
+                    String(item.id)
+                )
+            );
+
+        }
+
+    }
+
+
+    // -----------------------------------------
+    // LOC KHU VUC THEO KHO
+    // -----------------------------------------
+
+    function loadAreas() {
+
+        const matchingAreas = areas.filter(
+            item =>
+                String(item.kho_id) === warehouse.value
+        );
+
+        fillOptions(
+            area,
+            matchingAreas,
+            '-- Chọn khu vực có sẵn --',
+            'ten_khu_vuc'
+        );
+
+        return matchingAreas;
+
+    }
+
+
+    // -----------------------------------------
+    // LOC KE THEO KHU VUC
+    // -----------------------------------------
+
+    function loadRacks() {
+
+        const matchingRacks = racks.filter(
+            item =>
+                String(item.khu_vuc_id) === area.value
+        );
+
+        fillOptions(
+            rack,
+            matchingRacks,
+            '-- Chọn kệ có sẵn --',
+            'ten_ke'
+        );
+
+        return matchingRacks;
+
+    }
+
+
+    // -----------------------------------------
+    // CAP NHAT GIAO DIEN KHU VUC
+    // -----------------------------------------
+
+    function syncArea() {
+
+        const matchingAreas = areas.filter(
+            item =>
+                String(item.kho_id) === warehouse.value
+        );
+
+        // Neu tao moi, khong gui select khu vuc cu
+        area.disabled = (
+            !warehouse.value
+            ||
+            creatingArea
+            ||
+            matchingAreas.length === 0
+        );
+
+        // Chi gui __new__ khi tao khu vuc moi
+        areaMode.disabled = !creatingArea;
+
+        areaNewBox.hidden = !creatingArea;
+
+        areaNew.disabled = !creatingArea;
+        areaNew.required = creatingArea;
+
+        addAreaBtn.disabled = !warehouse.value;
+
+        addAreaBtn.classList.toggle(
+            'active',
+            creatingArea
+        );
+
+        addAreaBtn.querySelector('span').textContent =
+            creatingArea
+                ? 'Chọn khu vực có sẵn'
+                : 'Tạo khu vực mới';
+
+        if (!creatingArea) {
+            areaNew.value = '';
+        }
+
+    }
+
+
+    // -----------------------------------------
+    // CAP NHAT GIAO DIEN KE
+    // -----------------------------------------
+
+    function syncRack() {
+
+        // Khu vuc moi bat buoc tao ke moi
+        if (creatingArea) {
+            creatingRack = true;
+        }
+
+        const matchingRacks = racks.filter(
+            item =>
+                String(item.khu_vuc_id) === area.value
+        );
+
+        rack.disabled = (
+            creatingArea
+            ||
+            creatingRack
+            ||
+            !area.value
+            ||
+            matchingRacks.length === 0
+        );
+
+        rackMode.disabled = !creatingRack;
+
+        rackNewBox.hidden = !creatingRack;
+
+        rackNew.disabled = !creatingRack;
+        rackNew.required = creatingRack;
+
+        addRackBtn.disabled = (
+            creatingArea
+            ||
+            (!area.value && !creatingRack)
+        );
+
+        addRackBtn.classList.toggle(
+            'active',
+            creatingRack
+        );
+
+        addRackBtn.querySelector('span').textContent =
+            creatingArea
+                ? 'Kệ mới thuộc khu vực vừa tạo'
+                : creatingRack
+                    ? 'Chọn kệ có sẵn'
+                    : 'Tạo kệ mới';
+
+        if (!creatingRack) {
+            rackNew.value = '';
+        }
+
+    }
+
+
+    // -----------------------------------------
+    // KHI CHON KHO
+    // -----------------------------------------
+
+    warehouse.addEventListener(
+        'change',
+        function () {
+
+            creatingArea = false;
+            creatingRack = false;
+
+            areaNew.value = '';
+            rackNew.value = '';
+
+            loadAreas();
+
+            fillOptions(
+                rack,
+                [],
+                '-- Chọn kệ có sẵn --',
+                'ten_ke'
+            );
+
+            syncArea();
+            syncRack();
+
+        }
+    );
+
+
+    // -----------------------------------------
+    // KHI CHON KHU VUC CO SAN
+    // -----------------------------------------
+
+    area.addEventListener(
+        'change',
+        function () {
+
+            creatingRack = false;
+
+            rackNew.value = '';
+
+            loadRacks();
+
+            syncRack();
+
+        }
+    );
+
+
+    // -----------------------------------------
+    // NUT TAO KHU VUC MOI
+    // -----------------------------------------
+
+    addAreaBtn.addEventListener(
+        'click',
+        function () {
+
+            if (!warehouse.value) {
+                alert('Vui lòng chọn kho trước.');
+                return;
+            }
+
+            creatingArea = !creatingArea;
+
+            // Chuyen khu vuc thi phai chon lai ke
+            creatingRack = creatingArea;
+
+            area.value = '';
+            rackNew.value = '';
+
+            fillOptions(
+                rack,
+                [],
+                '-- Chọn kệ có sẵn --',
+                'ten_ke'
+            );
+
+            syncArea();
+            syncRack();
+
+            if (creatingArea) {
+                areaNew.focus();
+            } else {
+                area.focus();
+            }
+
+        }
+    );
+
+
+    // -----------------------------------------
+    // NUT TAO KE MOI
+    // -----------------------------------------
+
+    addRackBtn.addEventListener(
+        'click',
+        function () {
+
+            if (!area.value || creatingArea) {
+                return;
+            }
+
+            creatingRack = !creatingRack;
+
+            rack.value = '';
+
+            syncRack();
+
+            if (creatingRack) {
+                rackNew.focus();
+            } else {
+                rack.focus();
+            }
+
+        }
+    );
+
+
+    // -----------------------------------------
+    // KIEM TRA DU LIEU TRUOC KHI LUU
+    // -----------------------------------------
+
+    form.addEventListener(
+        'submit',
+        function (event) {
+
+            if (!warehouse.value) {
+
+                event.preventDefault();
+
+                alert('Vui lòng chọn kho.');
+
+                warehouse.focus();
+
+                return;
+            }
+
+            if (creatingArea) {
+
+                if (!areaNew.value.trim()) {
+
+                    event.preventDefault();
+
+                    alert('Vui lòng nhập tên khu vực mới.');
+
+                    areaNew.focus();
+
+                    return;
+                }
+
+            } else {
+
+                if (!area.value) {
+
+                    event.preventDefault();
+
+                    alert(
+                        'Vui lòng chọn khu vực có sẵn ' +
+                        'hoặc bấm Tạo khu vực mới.'
+                    );
+
+                    area.focus();
+
+                    return;
+                }
+
+            }
+
+            if (creatingRack) {
+
+                if (!rackNew.value.trim()) {
+
+                    event.preventDefault();
+
+                    alert('Vui lòng nhập tên kệ mới.');
+
+                    rackNew.focus();
+
+                    return;
+                }
+
+            } else {
+
+                if (!rack.value) {
+
+                    event.preventDefault();
+
+                    alert(
+                        'Vui lòng chọn kệ có sẵn ' +
+                        'hoặc bấm Tạo kệ mới.'
+                    );
+
+                    rack.focus();
+
+                    return;
+                }
+
+            }
+
+        }
+    );
+
+
+    // -----------------------------------------
+    // MO POPUP
+    // -----------------------------------------
+
+    const openButton = document.getElementById(
+        'position-create-open'
+    );
+
+    if (openButton) {
+
+        openButton.addEventListener(
+            'click',
+            function () {
+
+                dialog.showModal();
+
+            }
+        );
+
+    }
+
+
+    // -----------------------------------------
+    // DONG POPUP
+    // -----------------------------------------
+
+    function closeDialog() {
+        dialog.close();
+    }
+
+    document.getElementById(
+        'xpos-close'
+    ).addEventListener(
+        'click',
+        closeDialog
+    );
+
+    document.getElementById(
+        'xpos-cancel'
+    ).addEventListener(
+        'click',
+        closeDialog
+    );
+
+
+    // KHOI TAO
+    syncArea();
+    syncRack();
+
+})();
+</script>

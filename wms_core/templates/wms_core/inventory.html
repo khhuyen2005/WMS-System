@@ -1,0 +1,253 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block content %}
+
+<style>
+    /* ============================= */
+    /* CANH BAO TON KHO THAP         */
+    /* ============================= */
+
+    .stock-low td {
+        background-color: #FFF3F1 !important;
+    }
+
+    .stock-low:hover td {
+        background-color: #FFE9E5 !important;
+    }
+
+    .stock-low td:first-child {
+        box-shadow: none !important;
+        border-left: none !important;
+    }
+
+    .stock-low-quantity {
+        color: #DC2626;
+        font-weight: 700;
+    }
+
+    .stock-low-badge {
+        display: inline;
+        padding: 0 6px;
+        background-color: #FEE2E2;
+        border: 1px solid #FECACA;
+        border-radius: 4px;
+        color: #B91C1C;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: inherit;
+        white-space: nowrap;
+    }
+
+    /* ============================= */
+    /* BANG TON KHO                  */
+    /* ============================= */
+
+    .inventory-table th,
+    .inventory-table td {
+        padding: 11px 12px;
+        vertical-align: middle;
+    }
+
+    /* ============================= */
+    /* TEN HANG VA BIEN THE          */
+    /* ============================= */
+
+    .inventory-product-name {
+        font-weight: 500;
+        color: #442A20;
+    }
+
+    .inventory-attributes {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 3px 10px;
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #9A8578;
+    }
+
+    .inventory-attribute {
+        display: inline-block;
+        white-space: nowrap;
+        font-weight: 400;
+        color: #9A8578;
+    }
+
+    .inventory-attribute-label {
+        font-weight: 400;
+        color: #9A8578;
+    }
+
+    .inventory-attribute-value {
+        font-weight: 400;
+        color: #9A8578;
+    }
+
+</style>
+
+
+<!-- TIEU DE -->
+<h1 class="text-2xl font-bold mb-1">
+    Tồn kho theo vị trí
+</h1>
+
+
+<!-- BO LOC KHO -->
+<div class="mb-4 flex gap-3">
+
+    <a class="btn2"
+       href="{% url 'wms_inventory' %}">
+        Tất cả
+    </a>
+
+    <a class="btn2"
+       href="?kind=NVL">
+        Nguyên vật liệu
+    </a>
+
+    <a class="btn2"
+       href="?kind=TP">
+        Thành phẩm
+    </a>
+
+</div>
+
+
+<!-- BANG TON KHO -->
+<div class="box overflow-x-auto">
+
+    <table class="table inventory-table">
+
+        <thead>
+            <tr>
+                <th>Kho</th>
+                <th>Mã hàng</th>
+                <th>Tên hàng</th>
+                <th>Vị trí</th>
+                <th>Số lượng tồn</th>
+                <th>ĐVT</th>
+                <th>Cảnh báo</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for r in rows %}
+
+            <tr
+                {% if r.so_luong_ton < 10 %}
+                    class="stock-low"
+                {% endif %}
+            >
+
+                <!-- KHO -->
+                <td>
+                    {{ r.vi_tri.ke.khu_vuc.kho.ten_kho }}
+                </td>
+
+                <!-- MA HANG -->
+                <td class="font-bold text-blue-800">
+                    {{ r.hang_hoa.ma_hang }}
+                </td>
+
+                <!-- TEN HANG VA BIEN THE -->
+                <td>
+
+                    <div class="inventory-product-name">
+                        {{ r.hang_hoa.ten_hang }}
+                    </div>
+
+                    {% if r.hang_hoa.mau_sac or r.hang_hoa.kich_co or r.hang_hoa.mau_ma %}
+
+                    <div class="inventory-attributes">
+
+                        <!-- MAU SAC -->
+                        {% if r.hang_hoa.mau_sac %}
+                        <span class="inventory-attribute">
+                            <span class="inventory-attribute-label">
+                                Màu:
+                            </span>
+                            <span class="inventory-attribute-value">
+                                {{ r.hang_hoa.mau_sac }}
+                            </span>
+                        </span>
+                        {% endif %}
+
+                        <!-- KICH CO -->
+                        {% if r.hang_hoa.kich_co %}
+                        <span class="inventory-attribute">
+                            <span class="inventory-attribute-label">
+                                Size:
+                            </span>
+                            <span class="inventory-attribute-value">
+                                {{ r.hang_hoa.kich_co }}
+                            </span>
+                        </span>
+                        {% endif %}
+
+                        <!-- MAU MA -->
+                        {% if r.hang_hoa.mau_ma %}
+                        <span class="inventory-attribute">
+                            <span class="inventory-attribute-label">
+                                Mẫu mã:
+                            </span>
+                            <span class="inventory-attribute-value">
+                                {{ r.hang_hoa.mau_ma }}
+                            </span>
+                        </span>
+                        {% endif %}
+
+                    </div>
+
+                    {% endif %}
+
+                </td>
+
+                <!-- VI TRI -->
+                <td>
+                    {{ r.vi_tri.ma_vi_tri }}
+                </td>
+
+                <!-- SO LUONG TON -->
+                <td class="font-bold
+                    {% if r.so_luong_ton < 10 %}
+                        stock-low-quantity
+                    {% endif %}
+                ">
+                    {{ r.so_luong_ton|floatformat:"-2" }}
+                </td>
+
+                <!-- DON VI TINH -->
+                <td>
+                    {{ r.hang_hoa.don_vi_tinh.ten_don_vi_tinh }}
+                </td>
+
+                <!-- CANH BAO -->
+                <td>
+
+                    {% if r.so_luong_ton < 10 %}
+
+                    <span class="stock-low-badge">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Tồn thấp
+                    </span>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,499 @@
+
+{% extends 'wms_core/base.html' %}
+{% block title %}Danh mục chi nhánh | XONXEN WMS{% endblock %}
+{% block content %}
+
+<style>
+    .branch-dialog {
+        border: 0;
+        border-radius: 16px;
+        padding: 0;
+        width: min(540px, calc(100% - 32px));
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 65px rgba(0,0,0,.2);
+    }
+
+    .branch-dialog::backdrop {
+        background: rgba(30,20,15,.55);
+    }
+
+    .branch-dialog-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        background: #FFF3EA;
+        border-bottom: 1px solid #F0D6C6;
+    }
+
+    .branch-dialog-head h2 {
+        color: #9C4313;
+        font-size: 19px;
+        font-weight: 800;
+    }
+
+    .branch-form {
+        padding: 22px 24px;
+    }
+
+    .branch-field {
+        margin-bottom: 16px;
+    }
+
+    .branch-field label {
+        display: block;
+        margin-bottom: 7px;
+        color: #7D482D;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .branch-field input {
+        width: 100%;
+        border: 1px solid #E8CEBD;
+        border-radius: 9px;
+        padding: 11px 12px;
+        background: white;
+        outline: none;
+    }
+
+    .branch-field input:focus {
+        border-color: #E86A20;
+        box-shadow: 0 0 0 3px rgba(232,106,32,.12);
+    }
+
+    .branch-error {
+        color: #B42318;
+        font-size: 13px;
+        margin-top: 6px;
+    }
+
+    .branch-alert {
+        background: #FFF0EE;
+        color: #B42318;
+        border: 1px solid #F5C2BC;
+        border-radius: 9px;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+    }
+
+    .branch-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .branch-cancel {
+        padding: 10px 20px;
+        background: white;
+        cursor: pointer;
+        border: 1px solid #E8CEBD;
+        border-radius: 9px;
+    }
+
+    .branch-status-button {
+        background: white;
+        border: 1px solid #E8CEBD;
+        border-radius: 8px;
+        padding: 7px 11px;
+        color: #A1451B;
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    .branch-status-button:hover {
+        background: #FFF3EA;
+    }
+
+    .branch-pill {
+        display: inline-block;
+        border-radius: 20px;
+        padding: 5px 10px;
+        font-weight: 700;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .branch-pill--on {
+        background: #E8F7ED;
+        color: #187443;
+    }
+
+    .branch-pill--off {
+        background: #F4E6E1;
+        color: #7A4234;
+    }
+</style>
+
+<!-- TIÊU ĐỀ TRANG -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+    <div>
+        <h1 class="text-2xl font-bold text-orange-900">
+            Danh mục chi nhánh
+        </h1>
+
+
+    </div>
+
+    {% if is_manager %}
+    <button
+        type="button"
+        class="btn"
+        onclick="openBranchModal()"
+    >
+        <i class="fa-solid fa-plus mr-1"></i>
+        Thêm chi nhánh
+    </button>
+    {% endif %}
+</div>
+
+<!-- THANH TÌM KIẾM -->
+<form
+    method="get"
+    action="{% url 'wms_branches' %}"
+    class="box p-4 mb-5 flex flex-wrap items-center gap-3"
+>
+    <input
+        name="q"
+        type="text"
+        value="{{ search }}"
+        placeholder="Tìm mã hoặc tên chi nhánh"
+        class="field flex-1 min-w-[230px]"
+    >
+
+    <button class="btn" type="submit">
+        Tìm kiếm
+    </button>
+
+    {% if search %}
+    <a
+        href="{% url 'wms_branches' %}"
+        class="text-sm text-slate-500 hover:underline"
+    >
+        Xóa lọc
+    </a>
+    {% endif %}
+</form>
+
+<!-- BẢNG DANH SÁCH CHI NHÁNH -->
+<div class="box overflow-x-auto">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Mã chi nhánh</th>
+                <th>Tên chi nhánh</th>
+                <th>Số điện thoại</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+
+                {% if is_manager %}
+                <th>Thao tác</th>
+                {% endif %}
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for x in rows %}
+            <tr>
+                <td class="font-semibold text-orange-800">
+                    {{ x.ma_doi_tac }}
+                </td>
+
+                <td>
+                    {{ x.ten_doi_tac }}
+                </td>
+
+                <td>
+                    {{ x.so_dien_tho|default:'-' }}
+                </td>
+
+                <td>
+                    {{ x.dia_chi|default:'-' }}
+                </td>
+
+                <td>
+                    {% if x.trang_thai %}
+                    <span class="branch-pill branch-pill--on">
+                        Hoạt động
+                    </span>
+                    {% else %}
+                    <span class="branch-pill branch-pill--off">
+                        Ngừng hoạt động
+                    </span>
+                    {% endif %}
+                </td>
+
+                {% if is_manager %}
+                <td>
+                    <form
+                        method="post"
+                        action="{% url 'wms_branch_status' x.pk %}"
+                        onsubmit="return confirmBranchStatus(this);"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="branch-status-button"
+                            data-name="{{ x.ten_doi_tac }}"
+                            data-active="{% if x.trang_thai %}1{% else %}0{% endif %}"
+                        >
+                            {% if x.trang_thai %}
+                                Ngừng hoạt động
+                            {% else %}
+                                Kích hoạt lại
+                            {% endif %}
+                        </button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+
+            {% empty %}
+            <tr>
+                <td
+                    colspan="{% if is_manager %}6{% else %}5{% endif %}"
+                    class="text-center text-slate-500 py-8"
+                >
+                    Không tìm thấy chi nhánh phù hợp.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- POPUP THÊM CHI NHÁNH -->
+{% if is_manager %}
+<dialog id="branchModal" class="branch-dialog">
+
+    <div class="branch-dialog-head">
+        <h2>Thêm chi nhánh mới</h2>
+
+        <button
+            type="button"
+            onclick="closeBranchModal()"
+            aria-label="Đóng"
+            style="font-size:26px;color:#875338"
+        >
+            &times;
+        </button>
+    </div>
+
+    <form
+        method="post"
+        action="{% url 'wms_create_branch' %}"
+        id="branchCreateForm"
+        class="branch-form"
+    >
+        {% csrf_token %}
+
+        {% if branch_form_error %}
+        <div class="branch-alert" role="alert">
+            {{ branch_form_error }}
+        </div>
+        {% endif %}
+
+        <!-- MÃ CHI NHÁNH -->
+        <div class="branch-field">
+            <label for="ma_chi_nhanh">
+                Mã chi nhánh *
+            </label>
+
+            <input
+                id="ma_chi_nhanh"
+                name="ma_chi_nhanh"
+                maxlength="40"
+                required
+                value="{{ branch_draft.ma_chi_nhanh|default:'' }}"
+                placeholder="Ví dụ: CN-03"
+            >
+
+            <p
+                id="branch-code-error"
+                class="branch-error"
+                role="alert"
+                {% if not branch_code_error %}hidden{% endif %}
+            >
+                {{ branch_code_error }}
+            </p>
+        </div>
+
+        <!-- TÊN CHI NHÁNH -->
+        <div class="branch-field">
+            <label for="ten_chi_nhanh">
+                Tên chi nhánh *
+            </label>
+
+            <input
+                id="ten_chi_nhanh"
+                name="ten_chi_nhanh"
+                maxlength="220"
+                required
+                value="{{ branch_draft.ten_chi_nhanh|default:'' }}"
+                placeholder="Nhập tên chi nhánh"
+            >
+        </div>
+
+        <!-- SỐ ĐIỆN THOẠI -->
+        <div class="branch-field">
+            <label for="so_dien_tho">
+                Số điện thoại
+            </label>
+
+            <input
+                id="so_dien_tho"
+                name="so_dien_tho"
+                type="tel"
+                pattern="[0-9]{10,11}"
+                maxlength="11"
+                inputmode="numeric"
+                value="{{ branch_draft.so_dien_tho|default:'' }}"
+                placeholder="Ví dụ: 0905123456"
+            >
+        </div>
+
+        <!-- ĐỊA CHỈ -->
+        <div class="branch-field">
+            <label for="dia_chi">
+                Địa chỉ
+            </label>
+
+            <input
+                id="dia_chi"
+                name="dia_chi"
+                maxlength="500"
+                value="{{ branch_draft.dia_chi|default:'' }}"
+                placeholder="Nhập địa chỉ chi nhánh"
+            >
+        </div>
+
+
+        <div class="branch-actions">
+            <button
+                class="branch-cancel"
+                type="button"
+                onclick="closeBranchModal()"
+            >
+                Hủy
+            </button>
+
+            <button class="btn" type="submit">
+                Lưu chi nhánh
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- DANH SÁCH MÃ CHI NHÁNH ĐỂ KIỂM TRA TRÙNG -->
+{{ branch_codes|json_script:"existing-branch-codes" }}
+
+<script>
+    const existingBranchCodes = new Set(
+        JSON.parse(
+            document.getElementById(
+                'existing-branch-codes'
+            ).textContent
+        ).map(
+            x => String(x).trim().toUpperCase()
+        )
+    );
+
+    const branchCodeInput =
+        document.getElementById('ma_chi_nhanh');
+
+    const branchCodeError =
+        document.getElementById('branch-code-error');
+
+    // MỞ POPUP
+    function openBranchModal() {
+        const dialog =
+            document.getElementById('branchModal');
+
+        if (dialog && !dialog.open) {
+            dialog.showModal();
+        }
+    }
+
+    // ĐÓNG POPUP
+    function closeBranchModal() {
+        const dialog =
+            document.getElementById('branchModal');
+
+        if (dialog && dialog.open) {
+            dialog.close();
+        }
+    }
+
+    // KIỂM TRA MÃ CHI NHÁNH TRÙNG
+    function validateBranchCode() {
+        const code = branchCodeInput.value
+            .trim()
+            .toUpperCase();
+
+        const duplicated =
+            !!code && existingBranchCodes.has(code);
+
+        branchCodeError.textContent = duplicated
+            ? 'Mã chi nhánh ' + code +
+              ' đã tồn tại. Vui lòng nhập mã khác.'
+            : '';
+
+        branchCodeError.hidden = !duplicated;
+
+        branchCodeInput.setCustomValidity(
+            duplicated
+                ? 'Mã chi nhánh đã tồn tại.'
+                : ''
+        );
+
+        return !duplicated;
+    }
+
+    branchCodeInput.addEventListener(
+        'input',
+        validateBranchCode
+    );
+
+    // KIỂM TRA TRƯỚC KHI LƯU
+    document.getElementById(
+        'branchCreateForm'
+    ).addEventListener('submit', event => {
+        if (!validateBranchCode()) {
+            event.preventDefault();
+            branchCodeInput.reportValidity();
+        }
+    });
+
+    // XÁC NHẬN THAY ĐỔI TRẠNG THÁI
+    function confirmBranchStatus(form) {
+        const btn = form.querySelector('button');
+        const name = btn.dataset.name;
+
+        return window.confirm(
+            btn.dataset.active === '1'
+                ? 'Ngừng hoạt động chi nhánh "' +
+                  name +
+                  '"? Chi nhánh sẽ không thể được chọn trên phiếu xuất mới.'
+                : 'Kích hoạt lại chi nhánh "' +
+                  name +
+                  '"?'
+        );
+    }
+
+    // MỞ LẠI POPUP NẾU CÓ LỖI NHẬP LIỆU
+    {% if reopen_branch_modal %}
+    document.addEventListener(
+        'DOMContentLoaded',
+        () => {
+            openBranchModal();
+            branchCodeInput.focus();
+        }
+    );
+    {% endif %}
+</script>
+{% endif %}
+
+{% endblock %}

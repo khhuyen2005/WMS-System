@@ -1,0 +1,72 @@
+XONXEN SHOP - BO CAP NHAT NGHIEP VU WMS V2
+==========================================
+
+DAY LA BAN NANG CAP CODE TREN DU AN PYCHARM HIEN CO, KHONG PHAI PROJECT MOI.
+
+1. SAO LUU AN TOAN
+   - Dung runserver: Ctrl+C.
+   - Copy nguyen folder du an de co the quay lai (dac biet db.sqlite3).
+   - Khong xoa .venv, db.sqlite3, migrations, KhoNVL, KhoThanhPham.
+
+2. GIAI NEN ZIP VA COPY
+   - Giai nen XONXEN_WMS_NGHIEP_VU_V2.zip.
+   - Copy nguyen THU MUC xonxen_patch_v2/ vao CUNG CAP voi manage.py.
+   - KHONG COPY cac file ben trong payload vao app cu bang tay.
+
+3. MO TERMINAL PYCHARM, KIEM TRA dir manage.py, ROI CHAY:
+       python xonxen_patch_v2/apply_upgrade.py
+       python manage.py check
+       python manage.py makemigrations --check --dry-run
+       python manage.py migrate
+       python manage.py setup_wms_roles --manager nhom36
+       python manage.py test wms_core
+       python manage.py runserver
+
+   KHONG chay lai cac script cai_dat_cap_nhat_web_cu.py hoac khoi_phuc_web_cu_giu_wms.py
+   vi chung ghi de WMS/urls.py.
+
+4. MO WEB:
+       http://127.0.0.1:8000/
+       http://127.0.0.1:8000/KhoNVL/  (tu chuyen sang WMS chinh)
+       http://127.0.0.1:8000/wms/
+       http://127.0.0.1:8000/admin/
+
+   Dang nhap bang Django User nhom36. Lenh setup_wms_roles cap vai tro WMS
+   cho nhom36 nhung KHONG doi mat khau.
+
+5. TAI KHOAN NHAN VIEN:
+   - Tao Django User trong /admin/ -> Users (khong cap superuser cho nhan vien).
+   - Vi du tao user nv_nvl va nv_tp, chon mat khau rieng an toan.
+   - Trong Terminal dung cac lenh:
+       python manage.py setup_wms_roles --staff-nvl nv_nvl --staff-tp nv_tp
+   - Web nhan vien khong duoc duyet phieu hay xem bao cao quan ly.
+
+6. DU LIEU EXCEL:
+   - Ban WMS moi co trang /wms/nhap-excel/, danh cho quan ly.
+   - Ho tro 3 sheet NguyenVatLieu, ThanhPham, NhaCungCap theo Excel goc.
+   - Neu da nap seed_wms_demo thi ma da ton tai se bo qua, khong cong ton them.
+   - Hang hoa moi duoc gan vao VI TRI DAU TIEN cua moi kho (de demo).
+   - Phai kiem tra doi chieu vi tri va so luong voi thuc te truoc khi su dung that.
+   - Gia/Don gia trong Excel khong duoc dem vao module ke toan, do ngoai pham vi BRD.
+
+7. NGHIEP VU:
+   - Moi phieu nhap/xuat co nhieu dong; nhap -> gui duyet -> quan ly duyet -> cap nhat ton.
+   - Xuat vuot ton bi chan; nhap/xuat bi chan tai vi tri dang kiem ke.
+   - Huy phieu da duyet: tao de nghi, quan ly chap thuan, cap nhat ton bu tru va ghi log.
+   - Khong cho huy phieu nhap neu so hang da su dung khien ton am.
+   - Truy cap /wms/xu-ly-phieu/ de duyet huy; /wms/bao-cao/xuat-csv/ de tai bao cao ton.
+
+8. PHAM VI CHUA HOAN TAT / CAN TIEP TUC:
+   - Chua co xu ly SUA so luong phieu da duyet theo ChiTietYeuCauXuLyPhieu (chi ho tro HUY).
+   - Chua chuyen du lieu giao dich lich su tu cac model kho cu sang wms_core.
+   - Quan ly danh muc/vi tri chu yeu qua Django Admin, chua co day du form frontend.
+   - VaiTroQuyen da duoc tao du lieu, frontend hien phan quyen theo vai tro co dinh;
+     can tich hop quyen chi tiet theo tung thao tac truoc nghiem thu.
+   - Bao cao CSV hien tai la TON HIEN TAI theo SKU-vi tri, chua phai bao cao nhap-xuat-ton theo khoang thoi gian.
+   - SQLite dung cho demo; PostgreSQL can duoc thiet lap va kiem thu lai de chong dua giao dich dong thoi.
+   - Chua lam UI mau cam/logo XONXEN; uu tien nghiep vu truoc.
+
+9. NEU CO LOI:
+   - Dung o lenh loi, gui Traceback va anh Terminal.
+   - Backup code tu dong trong BACKUP_CODE_BEFORE_WMS_V2_YYYYMMDD_HHMMSS.
+   - FILE DB KHONG BI CHUONG TRINH CAI DAT SUA; migrate se quan ly schema nhu binh thuong.

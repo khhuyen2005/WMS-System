@@ -1,0 +1,182 @@
+{
+  "NguyenVatLieu": [
+    {
+      "ID Vải": "NVL001",
+      "Tên Vải": "Vải thun Cotton 4 chiều",
+      "Màu sắc": "Trắng",
+      "Nhà cung cấp": "Đại lý vải Chợ Hàn",
+      "Số lượng": 500,
+      "ĐVT": "Mét",
+      "Đơn giá": 45000
+    },
+    {
+      "ID Vải": "NVL002",
+      "Tên Vải": "Vải Voan tơ lụa",
+      "Màu sắc": "Hoa nhí xanh",
+      "Nhà cung cấp": "Chợ vải Ninh Hiệp",
+      "Số lượng": 300,
+      "ĐVT": "Mét",
+      "Đơn giá": 55000
+    },
+    {
+      "ID Vải": "NVL003",
+      "Tên Vải": "Vải Jean denim",
+      "Màu sắc": "Xanh nhạt",
+      "Nhà cung cấp": "Xưởng may An Đông",
+      "Số lượng": 200,
+      "ĐVT": "Mét",
+      "Đơn giá": 80000
+    },
+    {
+      "ID Vải": "NVL004",
+      "Tên Vải": "Vải Lanh mát",
+      "Màu sắc": "Đen",
+      "Nhà cung cấp": "Chợ vải Ninh Hiệp",
+      "Số lượng": 400,
+      "ĐVT": "Mét",
+      "Đơn giá": 40000
+    },
+    {
+      "ID Vải": "NVL005",
+      "Tên Vải": "Cúc áo sơ mi cơ bản",
+      "Màu sắc": "Trắng",
+      "Nhà cung cấp": "Phụ liệu may Tân Bình",
+      "Số lượng": 50,
+      "ĐVT": "Hộp",
+      "Đơn giá": 20000
+    },
+    {
+      "ID Vải": "NVL006",
+      "Tên Vải": "Dây kéo giọt nước 20cm",
+      "Màu sắc": "Đen",
+      "Nhà cung cấp": "Phụ liệu may Tân Bình",
+      "Số lượng": 30,
+      "ĐVT": "Bó",
+      "Đơn giá": 35000
+    }
+  ],
+  "ThanhPham": [
+    {
+      "ID Thành Phẩm": "TP001",
+      "Tên Thành Phẩm": "Áo thun Baby Tee Xonxen in chữ",
+      "Màu sắc": "Trắng",
+      "Size": "S",
+      "Số lượng": 120,
+      "Đơn giá": 150000
+    },
+    {
+      "ID Thành Phẩm": "TP002",
+      "Tên Thành Phẩm": "Áo thun Baby Tee Xonxen in chữ",
+      "Màu sắc": "Trắng",
+      "Size": "M",
+      "Số lượng": 150,
+      "Đơn giá": 150000
+    },
+    {
+      "ID Thành Phẩm": "TP003",
+      "Tên Thành Phẩm": "Đầm hoa nhí vintage dáng xòe",
+      "Màu sắc": "Xanh bơ",
+      "Size": "Freesize",
+      "Số lượng": 80,
+      "Đơn giá": 250000
+    },
+    {
+      "ID Thành Phẩm": "TP004",
+      "Tên Thành Phẩm": "Chân váy chữ A cạp cao",
+      "Màu sắc": "Đen",
+      "Size": "S",
+      "Số lượng": 60,
+      "Đơn giá": 180000
+    },
+    {
+      "ID Thành Phẩm": "TP005",
+      "Tên Thành Phẩm": "Chân váy chữ A cạp cao",
+      "Màu sắc": "Đen",
+      "Size": "M",
+      "Số lượng": 75,
+      "Đơn giá": 180000
+    },
+    {
+      "ID Thành Phẩm": "TP006",
+      "Tên Thành Phẩm": "Quần Jean ống rộng túi hộp",
+      "Màu sắc": "Xanh nhạt",
+      "Size": "S",
+      "Số lượng": 40,
+      "Đơn giá": 280000
+    },
+    {
+      "ID Thành Phẩm": "TP007",
+      "Tên Thành Phẩm": "Quần Jean ống rộng túi hộp",
+      "Màu sắc": "Xanh nhạt",
+      "Size": "M",
+      "Số lượng": 45,
+      "Đơn giá": 280000
+    },
+    {
+      "ID Thành Phẩm": "TP008",
+      "Tên Thành Phẩm": "Áo sơ mi lụa tay dài",
+      "Màu sắc": "Be",
+      "Size": "S",
+      "Số lượng": 90,
+      "Đơn giá": 220000
+    },
+    {
+      "ID Thành Phẩm": "TP009",
+      "Tên Thành Phẩm": "Áo trễ vai voan bèo",
+      "Màu sắc": "Trắng",
+      "Size": "Freesize",
+      "Số lượng": 110,
+      "Đơn giá": 190000
+    },
+    {
+      "ID Thành Phẩm": "TP010",
+      "Tên Thành Phẩm": "Áo khoác Cardigan len mỏng",
+      "Màu sắc": "Kem",
+      "Size": "Freesize",
+      "Số lượng": 30,
+      "Đơn giá": 200000
+    }
+  ],
+  "NhaCungCap": [
+    {
+      "ID NCC Vải": "NCC001",
+      "Tên NCC Vải": "Xưởng may An Đông",
+      "SĐT": "0901234567",
+      "Địa chỉ": "TP. Hồ Chí Minh",
+      "Facebook": "https://facebook.com/xuongandong",
+      "Website": "https://andong.vn"
+    },
+    {
+      "ID NCC Vải": "NCC002",
+      "Tên NCC Vải": "Đại lý vải Chợ Hàn",
+      "SĐT": "0912345678",
+      "Địa chỉ": "Hải Châu, Đà Nẵng",
+      "Facebook": "https://facebook.com/vaichohan",
+      "Website": null
+    },
+    {
+      "ID NCC Vải": "NCC003",
+      "Tên NCC Vải": "Xưởng gia công Hòa Thọ",
+      "SĐT": "0923456789",
+      "Địa chỉ": "Cẩm Lệ, Đà Nẵng",
+      "Facebook": null,
+      "Website": "https://hoatho.com.vn"
+    },
+    {
+      "ID NCC Vải": "NCC004",
+      "Tên NCC Vải": "Chợ vải Ninh Hiệp",
+      "SĐT": "0934567890",
+      "Địa chỉ": "Gia Lâm, Hà Nội",
+      "Facebook": "https://facebook.com/ninhhiep",
+      "Website": null
+    },
+    {
+      "ID NCC Vải": "NCC005",
+      "Tên NCC Vải": "Phụ liệu may Tân Bình",
+      "SĐT": "0945678901",
+      "Địa chỉ": "Tân Bình, TP. HCM",
+      "Facebook": null,
+      "Website": "https://phulieutanbinh.vn"
+    }
+  ]
+}

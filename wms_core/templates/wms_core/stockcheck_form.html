@@ -1,0 +1,1801 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}
+{% if edit_mode %}Sửa phiếu kiểm kho{% else %}Tạo phiếu kiểm kho{% endif %} | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<form
+    method="post"
+    id="check-form"
+    action="{% if edit_mode %}{% url 'wms_edit_stock_check' edit_phieu.pk %}{% else %}{% url 'wms_create_stock_check' %}{% endif %}"
+>
+    {% csrf_token %}
+
+    {% if not edit_mode %}
+    <input
+        type="hidden"
+        id="stockcheck-draft-token"
+        name="phien_tao"
+        value="{{ stockcheck_draft_token }}"
+    >
+    {% endif %}
+
+    <!-- TIEU DE VA NUT THAO TAC -->
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+
+        <div>
+            <h1 class="text-2xl font-bold text-orange-900">
+                {% if edit_mode %}
+                    Sửa phiếu kiểm kho {{ edit_phieu.ma_phieu }}
+                {% else %}
+                    Tạo phiếu kiểm kho
+                {% endif %}
+            </h1>
+        </div>
+
+        <div class="flex gap-3">
+
+            <a
+                class="btn2"
+                id="cancel-stock-check"
+                href="{% url 'wms_stock_checks' %}"
+            >
+                Quay lại danh sách
+            </a>
+
+            <button
+                class="btn"
+                type="submit"
+                id="stockcheck-submit-button"
+            >
+                <i class="fa-solid fa-check mr-1"></i>
+
+                {% if edit_mode %}
+                    Lưu thay đổi
+                {% else %}
+                    Tạo phiếu kiểm kho
+                {% endif %}
+            </button>
+
+        </div>
+    </div>
+
+    <!-- THONG BAO TRANG THAI KHOA -->
+    <div
+        id="draft-lock-status"
+        class="hidden mb-4 rounded-lg border px-4 py-3 text-sm"
+        role="status"
+        aria-live="polite"
+    ></div>
+
+    <!-- THONG TIN CHUNG -->
+    <div class="box p-6 mb-6">
+
+        <div class="grid grid-cols-1 {% if allowed_kind %}md:grid-cols-1{% else %}md:grid-cols-2{% endif %} gap-4 mb-4">
+
+            <!-- MA PHIEU -->
+            <div>
+                <label>Mã phiếu</label>
+
+                <div
+                    class="field"
+                    style="font-weight:700;cursor:default;"
+                >
+                    {{ next_code }}
+                </div>
+            </div>
+
+            <!-- KHO CAN KIEM -->
+            <div {% if allowed_kind %}class="hidden"{% endif %}>
+
+                <label for="kho">
+                    Kho cần kiểm *
+                </label>
+
+                <select
+                    class="field"
+                    id="kho"
+                    name="kho"
+                    required
+                    {% if edit_mode %}disabled{% endif %}
+                >
+                    {% if not allowed_kind %}
+                    <option value="">
+                        -- Chọn kho --
+                    </option>
+                    {% endif %}
+
+                    {% for k in warehouses %}
+                    <option
+                        value="{{ k.pk }}"
+                        {% if selected_kho == k.pk %}selected{% endif %}
+                    >
+                        {{ k.ten_kho }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                {% if edit_mode %}
+                <input
+                    type="hidden"
+                    name="kho"
+                    value="{{ selected_kho }}"
+                >
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- LOAI KIEM KE -->
+        <div class="mb-4">
+
+            <label for="loai_kiem_ke">
+                Loại kiểm kê *
+            </label>
+
+            <select
+                id="loai_kiem_ke"
+                name="loai_kiem_ke"
+                class="field"
+                required
+                {% if edit_mode %}disabled{% endif %}
+            >
+
+                <option
+                    value="mot_phan"
+                    {% if selected_type == 'mot_phan' %}selected{% endif %}
+                >
+                    Một phần - Chỉ kiểm các sản phẩm được chọn
+                </option>
+
+                <option
+                    value="toan_bo"
+                    {% if selected_type == 'toan_bo' %}selected{% endif %}
+                >
+                    Toàn bộ - Kiểm tất cả hàng hóa đang có dòng tồn trong kho
+                </option>
+
+            </select>
+
+            {% if edit_mode %}
+            <input
+                type="hidden"
+                name="loai_kiem_ke"
+                value="{{ selected_type }}"
+            >
+            {% endif %}
+
+        </div>
+
+        <!-- GHI CHU -->
+        <div>
+            <label for="ghi_chu">
+                Ghi chú kiểm kho
+            </label>
+
+            <textarea
+                class="field"
+                id="ghi_chu"
+                name="ghi_chu"
+                rows="3"
+                maxlength="500"
+                placeholder="Ví dụ: Kiểm hàng cuối ngày"
+            >{{ initial_note }}</textarea>
+        </div>
+
+    </div>
+
+    <!-- DANH SACH SAN PHAM -->
+    <h2 class="text-center font-bold text-lg mb-4">
+        Danh sách sản phẩm kiểm kê
+    </h2>
+
+    <!-- KIEM KE MOT PHAN -->
+    <div id="partial-area">
+
+
+
+        <div
+            id="lines"
+            class="space-y-3 mb-5"
+        ></div>
+
+        <div class="text-center mb-8">
+
+            <button
+                type="button"
+                id="add-line-btn"
+                class="btn2"
+                onclick="addLine()"
+            >
+                <i class="fa-solid fa-plus mr-1"></i>
+                Thêm sản phẩm
+            </button>
+
+        </div>
+    </div>
+
+    <!-- KIEM KE TOAN BO -->
+    <div
+        id="full-area"
+        class="hidden mb-6"
+    >
+
+        <div class="box overflow-x-auto">
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th>Sản phẩm - Vị trí</th>
+                        <th>Tồn hệ thống</th>
+                        <th>Số lượng thực tế *</th>
+                    </tr>
+                </thead>
+
+                <tbody id="all-stock-rows"></tbody>
+
+            </table>
+
+        </div>
+
+        <p
+            id="full-count"
+            class="text-sm text-slate-500 mt-2"
+        ></p>
+
+    </div>
+
+</form>
+
+
+<!-- ========================================== -->
+<!-- MAU DONG KIEM KE MOT PHAN -->
+<!-- ========================================== -->
+
+<template id="line-template">
+
+    <div class="line box p-4">
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+
+            <!-- SAN PHAM -->
+            <div class="md:col-span-6">
+
+                <label>Sản phẩm *</label>
+
+                <select
+                    class="field product"
+                    name="ton_kho"
+                    required
+                >
+
+                    <option value="">
+                        -- Chọn sản phẩm --
+                    </option>
+
+                    {% for s in stocks %}
+
+                    <option
+                        value="{{ s.pk }}"
+                        data-kho="{{ s.vi_tri.ke.khu_vuc.kho_id }}"
+                        data-hang="{{ s.hang_hoa_id }}"
+                        data-vi-tri="{{ s.vi_tri_id }}"
+                        data-ton="{{ s.so_luong_ton|stringformat:'s' }}"
+                    >
+                        {{ s.hang_hoa.ma_hang }}
+                        -
+                        {{ s.hang_hoa.ten_hang }}
+
+                        {% if s.hang_hoa.mau_sac %}
+                            - Màu sắc: {{ s.hang_hoa.mau_sac }}
+                        {% endif %}
+
+                        {% if s.hang_hoa.kich_co %}
+                            - Kích cỡ: {{ s.hang_hoa.kich_co }}
+                        {% endif %}
+
+                        (Vị trí {{ s.vi_tri.ma_vi_tri }})
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+                <p
+                    class="product-lock-hint hidden text-xs text-slate-500 mt-1"
+                    aria-live="polite"
+                ></p>
+
+            </div>
+
+            <!-- TON HE THONG -->
+            <div class="md:col-span-2">
+
+                <label>Tồn kho</label>
+
+                <input
+                    class="field ton"
+                    type="text"
+                    readonly
+                    tabindex="-1"
+                    style="background:#F6EFEA;"
+                    placeholder="Tự động"
+                >
+
+            </div>
+
+            <!-- SO LUONG THUC TE -->
+            <div class="md:col-span-3">
+
+                <label>
+                    Số lượng thực tế *
+                </label>
+
+                <input
+                    class="field actual"
+                    name="so_luong_thuc_te"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    required
+                >
+
+            </div>
+
+            <!-- XOA DONG -->
+            <div class="md:col-span-1 text-right">
+
+                <button
+                    type="button"
+                    class="btn2"
+                    title="Xóa dòng"
+                    onclick="removeLine(this)"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</template>
+
+
+<!-- DU LIEU PHIEU CU KHI SUA -->
+{{ initial_lines|json_script:"initial-lines" }}
+
+
+<!-- ========================================== -->
+<!-- JAVASCRIPT -->
+<!-- ========================================== -->
+
+<script>
+(function () {
+    'use strict';
+
+    // ==========================================
+    // 1. KHAI BAO
+    // ==========================================
+
+    const IS_EDIT =
+        {% if edit_mode %}true{% else %}false{% endif %};
+
+    const IS_CREATING = !IS_EDIT;
+
+    const khoSelect =
+        document.getElementById('kho');
+
+    const typeSelect =
+        document.getElementById('loai_kiem_ke');
+
+    const linesBox =
+        document.getElementById('lines');
+
+    const template =
+        document.getElementById('line-template');
+
+    const form =
+        document.getElementById('check-form');
+
+    const partialArea =
+        document.getElementById('partial-area');
+
+    const fullArea =
+        document.getElementById('full-area');
+
+    const fullRows =
+        document.getElementById('all-stock-rows');
+
+    const fullCount =
+        document.getElementById('full-count');
+
+    const lockStatus =
+        document.getElementById('draft-lock-status');
+
+    const submitButton =
+        document.getElementById('stockcheck-submit-button');
+
+    const cancelLink =
+        document.getElementById('cancel-stock-check');
+
+    const tokenInput =
+        document.getElementById('stockcheck-draft-token');
+
+    const lockStatusUrl =
+        "{% url 'wms_document_lock_status' %}";
+
+    const syncUrl =
+        "{% url 'wms_sync_stockcheck_draft' %}";
+
+    const releaseUrl =
+        "{% url 'wms_release_stockcheck_draft' %}";
+
+    const numberFormat = new Intl.NumberFormat(
+        'vi-VN',
+        {maximumFractionDigits: 2}
+    );
+
+    const originalLines = JSON.parse(
+        document.getElementById('initial-lines').textContent
+    ) || [];
+
+    const originalStockIds = new Set(
+        originalLines
+            .map(row => String(row.ton_kho || ''))
+            .filter(Boolean)
+    );
+
+    const allOptions = Array.from(
+        template.content.querySelectorAll(
+            '.product option'
+        )
+    ).filter(option => option.value);
+
+    const optionByStockId = new Map(
+        allOptions.map(option => [
+            String(option.value),
+            option
+        ])
+    );
+
+    const csrfToken = form.querySelector(
+        '[name="csrfmiddlewaretoken"]'
+    ).value;
+
+
+    // ==========================================
+    // 2. TRANG THAI KHOA
+    // ==========================================
+
+    let remoteLocks = {};
+
+    let lockRequest = null;
+
+    let lockDataAvailable = false;
+
+    let ownDraftIds = new Set();
+
+    let ownDraftMode = '';
+
+    let ownDraftWarehouse = '';
+
+    let syncTimer = null;
+
+    let syncQueue = Promise.resolve({
+        ok: true
+    });
+
+    let submittingLock = false;
+
+    let allowSubmit = false;
+
+    let formIsSubmitting = false;
+
+
+    function showLockStatus(
+        message,
+        isError = false
+    ) {
+        if (!message) {
+            lockStatus.classList.add('hidden');
+            lockStatus.textContent = '';
+            return;
+        }
+
+        lockStatus.className = isError
+            ? (
+                'mb-4 rounded-lg border border-red-200 ' +
+                'bg-red-50 px-4 py-3 text-sm text-red-700'
+            )
+            : (
+                'mb-4 rounded-lg border border-slate-200 ' +
+                'bg-slate-50 px-4 py-3 text-sm text-slate-700'
+            );
+
+        lockStatus.textContent = message;
+    }
+
+
+    function getWarehouseLockState() {
+        const data = remoteLocks[
+            String(khoSelect.value)
+        ] || {};
+
+        return {
+            full: data.full === true,
+
+            pairs: new Set(
+                (data.pairs || []).map(String)
+            ),
+
+            legacyGoods: new Set(
+                (data.legacy_goods || []).map(String)
+            ),
+
+            positions: new Set(
+                (data.positions || []).map(String)
+            )
+        };
+    }
+
+
+    // Kiem tra khoa theo:
+    // Kho + Hang hoa + Vi tri
+    //
+    // Khong xem khoa do chinh phien hien tai
+    // dang giu la xung dot voi chinh no.
+
+    function isStockOptionLocked(option) {
+        if (!option || !option.value) {
+            return false;
+        }
+
+        const stockId = String(option.value);
+
+        const warehouseId = String(
+            option.dataset.kho || ''
+        );
+
+        const goodId = String(
+            option.dataset.hang || ''
+        );
+
+        const positionId = String(
+            option.dataset.viTri || ''
+        );
+
+        const state = getWarehouseLockState();
+
+        // Kiem ke toan bo
+        if (state.full) {
+
+            // Dang sua chinh phieu toan bo
+            if (
+                IS_EDIT &&
+                typeSelect.value === 'toan_bo'
+            ) {
+                return false;
+            }
+
+            // Khoa toan bo cua chinh phien dang tao
+            if (
+                IS_CREATING &&
+                ownDraftMode === 'toan_bo' &&
+                ownDraftWarehouse === warehouseId &&
+                typeSelect.value === 'toan_bo'
+            ) {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Khoa vi tri cua quy trinh kiem ke cu
+        if (state.positions.has(positionId)) {
+            return true;
+        }
+
+        // Khoa tam cu chua gan vi tri
+        if (state.legacyGoods.has(goodId)) {
+            return true;
+        }
+
+        // Khoa theo hang hoa + vi tri
+        const pairKey =
+            goodId + ':' + positionId;
+
+        if (!state.pairs.has(pairKey)) {
+            return false;
+        }
+
+        // Dang sua phieu Cho duyet:
+        // cac dong cu cua chinh phieu duoc chon
+        if (
+            IS_EDIT &&
+            originalStockIds.has(stockId)
+        ) {
+            return false;
+        }
+
+        // Dang tao: cac dong do chinh phien
+        // nay da giu khoa tam thanh cong
+        if (
+            IS_CREATING &&
+            ownDraftMode === 'mot_phan' &&
+            ownDraftWarehouse === warehouseId &&
+            ownDraftIds.has(stockId)
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    // ==========================================
+    // 3. HIEN THI TON KHO
+    // ==========================================
+
+    function cleanQuantity(value) {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ''
+        ) {
+            return '';
+        }
+
+        const number = Number(
+            String(value).trim().replace(',', '.')
+        );
+
+        return Number.isFinite(number)
+            ? String(number)
+            : String(value);
+    }
+
+
+    function showStock(line) {
+        const selected = line.querySelector(
+            '.product'
+        ).selectedOptions[0];
+
+        const quantityField = line.querySelector(
+            '.ton'
+        );
+
+        quantityField.value = (
+            selected && selected.value
+        )
+            ? numberFormat.format(
+                Number(selected.dataset.ton)
+            )
+            : '';
+    }
+
+
+    // ==========================================
+    // 4. LOC SAN PHAM THEO KHO VA KHOA
+    // ==========================================
+
+    function refreshOptions() {
+        if (typeSelect.value !== 'mot_phan') {
+            return false;
+        }
+
+        const selectedWarehouse =
+            String(khoSelect.value);
+
+        const selectedIds = new Set(
+            Array.from(
+                linesBox.querySelectorAll('.product')
+            )
+                .map(select => select.value)
+                .filter(Boolean)
+        );
+
+        let clearedSelection = false;
+
+        linesBox.querySelectorAll('.line').forEach(
+            line => {
+
+                const select =
+                    line.querySelector('.product');
+
+                let lockedCount = 0;
+
+                for (const option of select.options) {
+
+                    if (!option.value) {
+                        continue;
+                    }
+
+                    if (!option.dataset.originalText) {
+                        option.dataset.originalText =
+                            option.textContent
+                                .replace(/\s+/g, ' ')
+                                .trim();
+                    }
+
+                    const sameWarehouse =
+                        option.dataset.kho ===
+                        selectedWarehouse;
+
+                    const duplicated =
+                        selectedIds.has(option.value) &&
+                        option.value !== select.value;
+
+                    const locked =
+                        sameWarehouse &&
+                        isStockOptionLocked(option);
+
+                    option.hidden = !sameWarehouse;
+
+                    option.disabled =
+                        !sameWarehouse ||
+                        duplicated ||
+                        locked;
+
+                    if (locked) {
+                        lockedCount++;
+                    }
+
+                    option.textContent = locked
+                        ? (
+                            option.dataset.originalText +
+                            ' — ĐANG KIỂM KHO'
+                        )
+                        : option.dataset.originalText;
+
+                    option.style.color = locked
+                        ? '#94A3B8'
+                        : '';
+
+                    option.style.backgroundColor = locked
+                        ? '#F1F5F9'
+                        : '';
+
+                    option.title = locked
+                        ? (
+                            'Sản phẩm tại vị trí này ' +
+                            'đang được kiểm kho.'
+                        )
+                        : '';
+                }
+
+                const selected =
+                    select.selectedOptions[0];
+
+                if (
+                    selected &&
+                    selected.value &&
+                    selected.disabled
+                ) {
+                    select.value = '';
+                    clearedSelection = true;
+                }
+
+                const hint = line.querySelector(
+                    '.product-lock-hint'
+                );
+
+if (hint) {
+    hint.classList.add('hidden');
+    hint.textContent = '';
+}
+
+                showStock(line);
+            }
+        );
+
+        return clearedSelection;
+    }
+
+
+    // ==========================================
+    // 5. THEM DONG KIEM KE
+    // ==========================================
+
+    function addLine(prefill = null) {
+
+        if (linesBox.children.length >= 100) {
+            alert(
+                'Kiểm kê một phần tối đa ' +
+                '100 dòng hàng mỗi phiếu.'
+            );
+            return;
+        }
+
+        const line = template.content
+            .firstElementChild.cloneNode(true);
+
+        linesBox.appendChild(line);
+
+        const productSelect =
+            line.querySelector('.product');
+
+        const actualField =
+            line.querySelector('.actual');
+
+        if (
+            prefill &&
+            typeof prefill === 'object'
+        ) {
+            productSelect.value =
+                String(prefill.ton_kho || '');
+
+            actualField.value = cleanQuantity(
+                prefill.so_luong_thuc_te
+            );
+        }
+
+        productSelect.addEventListener(
+            'change',
+            () => {
+                refreshOptions();
+                scheduleDraftSync();
+            }
+        );
+
+        refreshOptions();
+        showStock(line);
+    }
+
+
+    // ==========================================
+    // 6. XOA DONG KIEM KE
+    // ==========================================
+
+    function removeLine(button) {
+
+        if (linesBox.children.length <= 1) {
+            alert(
+                'Phiếu cần ít nhất một dòng hàng.'
+            );
+            return;
+        }
+
+        button.closest('.line').remove();
+
+        refreshOptions();
+        scheduleDraftSync();
+    }
+
+
+    // ==========================================
+    // 7. KIEM KE TOAN BO
+    // ==========================================
+
+    function renderAll(restore = false) {
+
+        fullRows.replaceChildren();
+
+        const warehouseId =
+            String(khoSelect.value);
+
+        const allowed = allOptions.filter(
+            option =>
+                option.dataset.kho === warehouseId
+        );
+
+        const previous = new Map(
+            (
+                restore
+                    ? originalLines
+                    : []
+            ).map(row => [
+                String(row.ton_kho),
+                row.so_luong_thuc_te
+            ])
+        );
+
+        for (const option of allowed) {
+
+            const row =
+                document.createElement('tr');
+
+            row.className = 'full-stock-row';
+
+            row.dataset.stockId =
+                String(option.value);
+
+            // Ten san pham va vi tri
+            const nameCell =
+                row.insertCell();
+
+            nameCell.className =
+                'font-semibold';
+
+            const productName =
+                document.createElement('span');
+
+            productName.textContent =
+                option.textContent
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+            nameCell.appendChild(
+                productName
+            );
+
+            const lockFlag =
+                document.createElement('span');
+
+            lockFlag.className =
+                'full-lock-flag hidden ' +
+                'block text-xs text-red-600 mt-1';
+
+            nameCell.appendChild(
+                lockFlag
+            );
+
+            // Ton he thong
+            const stockCell =
+                row.insertCell();
+
+            stockCell.textContent =
+                numberFormat.format(
+                    Number(option.dataset.ton)
+                );
+
+            // So luong thuc te
+            const actualCell =
+                row.insertCell();
+
+            const hidden =
+                document.createElement('input');
+
+            hidden.type = 'hidden';
+            hidden.name = 'ton_kho';
+            hidden.value = option.value;
+
+            actualCell.appendChild(
+                hidden
+            );
+
+            const actual =
+                document.createElement('input');
+
+            actual.className = 'field';
+            actual.type = 'number';
+            actual.name = 'so_luong_thuc_te';
+            actual.min = '0';
+            actual.step = '0.01';
+            actual.placeholder = 'Nhập số đếm';
+            actual.required = true;
+
+            actual.value = previous.has(
+                String(option.value)
+            )
+                ? cleanQuantity(
+                    previous.get(
+                        String(option.value)
+                    )
+                )
+                : '';
+
+            actualCell.appendChild(
+                actual
+            );
+
+            fullRows.appendChild(row);
+        }
+
+        fullCount.textContent = allowed.length
+            ? (
+                'Tổng số dòng tồn cần kiểm: ' +
+                allowed.length
+            )
+            : (
+                'Kho chưa có dòng tồn kho nào ' +
+                'để kiểm kê toàn bộ.'
+            );
+
+        refreshFullLockIndicators();
+    }
+
+
+    function refreshFullLockIndicators() {
+        if (
+            typeSelect.value !== 'toan_bo'
+        ) {
+            return;
+        }
+
+        let conflictCount = 0;
+
+        fullRows.querySelectorAll(
+            '.full-stock-row'
+        ).forEach(row => {
+
+            const stockId =
+                String(row.dataset.stockId);
+
+            const option =
+                optionByStockId.get(stockId);
+
+            const locked =
+                isStockOptionLocked(option);
+
+            const flag =
+                row.querySelector(
+                    '.full-lock-flag'
+                );
+
+            row.classList.toggle(
+                'opacity-60',
+                locked
+            );
+
+            flag.classList.toggle(
+                'hidden',
+                !locked
+            );
+
+flag.textContent = locked
+    ? 'ĐANG ĐƯỢC KIỂM KÊ – Tạm thời không thể chọn vị trí này'
+    : '';
+
+            if (locked) {
+                conflictCount++;
+            }
+        });
+
+
+    }
+
+
+    // ==========================================
+    // 8. CHUYEN LOAI KIEM KE
+    // ==========================================
+
+    function switchMode(restore = false) {
+
+        const isFull =
+            typeSelect.value === 'toan_bo';
+
+        partialArea.classList.toggle(
+            'hidden',
+            isFull
+        );
+
+        fullArea.classList.toggle(
+            'hidden',
+            !isFull
+        );
+
+        if (isFull) {
+
+            linesBox.replaceChildren();
+
+            renderAll(restore);
+
+        } else {
+
+            fullRows.replaceChildren();
+
+            linesBox.replaceChildren();
+
+            if (
+                restore &&
+                originalLines.length
+            ) {
+                originalLines.forEach(
+                    row => addLine(row)
+                );
+            } else {
+                addLine();
+            }
+        }
+    }
+
+
+    // ==========================================
+    // 9. API DOC TRANG THAI KHOA
+    // ==========================================
+
+    async function refreshLockStatus() {
+
+        if (lockRequest) {
+            return lockRequest;
+        }
+
+        lockRequest = (async () => {
+
+            const response = await fetch(
+                lockStatusUrl,
+                {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    'Không lấy được trạng thái khóa kiểm kho.'
+                );
+            }
+
+            const data =
+                await response.json();
+
+            if (
+                data.ok !== true ||
+                !data.locked_stock_positions_by_warehouse ||
+                typeof data.locked_stock_positions_by_warehouse
+                    !== 'object'
+            ) {
+                throw new Error(
+                    'Dữ liệu khóa theo vị trí không hợp lệ.'
+                );
+            }
+
+            remoteLocks =
+                data.locked_stock_positions_by_warehouse;
+
+            lockDataAvailable = true;
+
+            if (
+                typeSelect.value === 'mot_phan'
+            ) {
+                const cleared =
+                    refreshOptions();
+
+                if (cleared) {
+                    showLockStatus(
+                        'Một sản phẩm tại vị trí bạn đang chọn ' +
+                        'vừa bị khóa. Hệ thống đã bỏ chọn ' +
+                        'dòng đó. Vui lòng chọn vị trí khác.',
+                        true
+                    );
+
+                    scheduleDraftSync();
+                }
+
+            } else {
+                refreshFullLockIndicators();
+            }
+
+            return {
+                ok: true
+            };
+
+        })().catch(error => {
+
+            lockDataAvailable = false;
+
+            console.error(
+                'Không cập nhật được khóa kiểm kho:',
+                error
+            );
+
+            showLockStatus(
+                'Không thể cập nhật trạng thái khóa. ' +
+                'Vui lòng kiểm tra kết nối và thử lại.',
+                true
+            );
+
+            return {
+                ok: false,
+                message: (
+                    'Không thể cập nhật trạng thái khóa.'
+                )
+            };
+
+        }).finally(() => {
+            lockRequest = null;
+        });
+
+        return lockRequest;
+    }
+
+
+    // ==========================================
+    // 10. API KHOA TAM KHI DANG TAO PHIEU
+    // ==========================================
+
+    async function postDraft(
+        url,
+        payload,
+        keepalive = false
+    ) {
+        try {
+            const response = await fetch(
+                url,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    keepalive: keepalive,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                }
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok || !data.ok) {
+                return {
+                    ok: false,
+                    message: (
+                        data.message ||
+                        'Không thể cập nhật khóa kiểm kho.'
+                    )
+                };
+            }
+
+            return data;
+
+        } catch (error) {
+
+            console.error(
+                'Lỗi API khóa tạm:',
+                error
+            );
+
+            return {
+                ok: false,
+                message: (
+                    'Không thể kết nối hệ thống khóa kiểm kho.'
+                )
+            };
+        }
+    }
+
+
+    function getDraftPayload() {
+
+        const isFull =
+            typeSelect.value === 'toan_bo';
+
+        const activeArea = isFull
+            ? fullRows
+            : linesBox;
+
+        const stockIds = Array.from(
+            activeArea.querySelectorAll(
+                '[name="ton_kho"]'
+            )
+        )
+            .map(element => element.value)
+            .filter(Boolean);
+
+        return {
+            phien_tao: tokenInput.value,
+            kho: khoSelect.value,
+            loai_kiem_ke: typeSelect.value,
+            ton_kho_ids: stockIds
+        };
+    }
+
+
+    function syncDraftLocks() {
+
+        if (!IS_CREATING) {
+            return Promise.resolve({
+                ok: true
+            });
+        }
+
+        const payload =
+            getDraftPayload();
+
+        syncQueue = syncQueue
+            .catch(() => null)
+            .then(async () => {
+
+                let result;
+
+                // Khong co kho hoac chua chon
+                // san pham trong KIEM KE MOT PHAN:
+                // giai phong khoa tam.
+
+                const shouldRelease =
+                    !payload.kho ||
+                    (
+                        payload.loai_kiem_ke === 'mot_phan' &&
+                        payload.ton_kho_ids.length === 0
+                    );
+
+                if (shouldRelease) {
+
+                    result = await postDraft(
+                        releaseUrl,
+                        {
+                            phien_tao: payload.phien_tao
+                        }
+                    );
+
+                    if (result.ok) {
+
+                        ownDraftIds = new Set();
+                        ownDraftMode = '';
+                        ownDraftWarehouse = '';
+
+                        showLockStatus('');
+                    }
+
+                } else {
+
+                    result = await postDraft(
+                        syncUrl,
+                        payload
+                    );
+
+                    if (result.ok) {
+
+                        ownDraftIds = new Set(
+                            payload.ton_kho_ids.map(String)
+                        );
+
+                        ownDraftMode =
+                            payload.loai_kiem_ke;
+
+                        ownDraftWarehouse =
+                            String(payload.kho);
+
+                        const message =
+                            payload.loai_kiem_ke === 'toan_bo'
+                                ? (
+                                    'Đã khóa tạm toàn bộ kho ' +
+                                    'cho phiên kiểm kê hiện tại.'
+                                )
+                                : (
+                                    'Đã khóa tạm ' +
+                                    result.lock_count +
+                                    ' dòng sản phẩm - vị trí ' +
+                                    'đang được chọn.'
+                                );
+
+// Khong hien thi thong bao khi khoa tam thanh cong
+showLockStatus('');
+                    }
+                }
+
+                if (!result.ok) {
+
+                    showLockStatus(
+                        result.message ||
+                        'Không thể khóa tạm phạm vi kiểm kê.',
+                        true
+                    );
+                }
+
+                const refreshed =
+                    await refreshLockStatus();
+
+                if (!refreshed.ok) {
+                    return {
+                        ok: false,
+                        message: (
+                            'Không kiểm tra được trạng thái khóa.'
+                        )
+                    };
+                }
+
+                return result;
+            });
+
+        return syncQueue;
+    }
+
+
+    // ==========================================
+    // 11. DONG BO KHI THAY DOI LUA CHON
+    // ==========================================
+
+    function scheduleDraftSync() {
+
+        if (
+            !IS_CREATING ||
+            formIsSubmitting
+        ) {
+            return;
+        }
+
+        clearTimeout(syncTimer);
+
+        syncTimer = setTimeout(
+            () => {
+                syncDraftLocks();
+            },
+            180
+        );
+    }
+
+
+    // ==========================================
+    // 12. KIEM TRA TRUOC KHI LUU
+    // ==========================================
+
+    function validateStockCheck() {
+
+        if (!khoSelect.value) {
+            alert('Vui lòng chọn kho cần kiểm.');
+            khoSelect.focus();
+            return false;
+        }
+
+        const isFull =
+            typeSelect.value === 'toan_bo';
+
+        const activeArea = isFull
+            ? fullRows
+            : linesBox;
+
+        const stockFields = Array.from(
+            activeArea.querySelectorAll(
+                '[name="ton_kho"]'
+            )
+        );
+
+        if (
+            stockFields.length === 0 ||
+            stockFields.some(field => !field.value)
+        ) {
+            alert(
+                'Phiếu kiểm kho cần có ' +
+                'ít nhất một dòng sản phẩm hợp lệ.'
+            );
+
+            return false;
+        }
+
+        // Khong trung cung mot dong TonKho
+        const selectedStockIds = stockFields.map(
+            field => String(field.value)
+        );
+
+        if (
+            new Set(selectedStockIds).size !==
+            selectedStockIds.length
+        ) {
+            alert(
+                'Một sản phẩm tại cùng vị trí ' +
+                'chỉ được xuất hiện một lần trong phiếu.'
+            );
+
+            return false;
+        }
+
+        // Kiem tra cac dong dang bi khoa
+        if (lockDataAvailable) {
+
+            for (const stockId of selectedStockIds) {
+
+                const option =
+                    optionByStockId.get(stockId);
+
+                if (
+                    option &&
+                    isStockOptionLocked(option)
+                ) {
+                    alert(
+                        'Sản phẩm tại một vị trí được chọn ' +
+                        'đang bị khóa bởi phiếu hoặc ' +
+                        'phiên kiểm kho khác.'
+                    );
+
+                    return false;
+                }
+            }
+        }
+
+        // So luong thuc te
+        for (
+            const input of activeArea.querySelectorAll(
+                '[name="so_luong_thuc_te"]'
+            )
+        ) {
+            const value = Number(input.value);
+
+            if (
+                input.value === '' ||
+                !Number.isFinite(value) ||
+                value < 0 ||
+                !input.validity.valid
+            ) {
+                alert(
+                    'Nhập số lượng thực tế không âm ' +
+                    'và tối đa 2 chữ số thập phân ' +
+                    'cho tất cả dòng hàng.'
+                );
+
+                input.focus();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    form.addEventListener(
+        'submit',
+        async function(event) {
+
+            if (allowSubmit) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (submittingLock) {
+                return;
+            }
+
+            if (!validateStockCheck()) {
+                return;
+            }
+
+            submittingLock = true;
+
+            submitButton.disabled = true;
+
+            clearTimeout(syncTimer);
+
+            try {
+
+                // Khi sua phieu, khong tao khoa tam moi.
+                // Backend update_pending_stock_check
+                // van kiem tra trung khoa.
+
+                if (IS_CREATING) {
+
+                    const result =
+                        await syncDraftLocks();
+
+                    if (!result.ok) {
+
+                        showLockStatus(
+                            result.message ||
+                            'Không thể giữ khóa để tạo phiếu.',
+                            true
+                        );
+
+                        alert(
+                            'Không thể tạo phiếu vì phạm vi ' +
+                            'kiểm kê đang có xung đột khóa.'
+                        );
+
+                        return;
+                    }
+
+                } else {
+
+                    const result =
+                        await refreshLockStatus();
+
+                    if (!result.ok) {
+                        alert(
+                            'Chưa kiểm tra được trạng thái khóa.'
+                        );
+
+                        return;
+                    }
+                }
+
+                if (!validateStockCheck()) {
+                    return;
+                }
+
+                // Yeu cau HTML5 validation lan cuoi
+                if (!form.reportValidity()) {
+                    return;
+                }
+
+                // Gui POST theo quy trinh Django hien tai
+                allowSubmit = true;
+
+                formIsSubmitting = true;
+
+                submitButton.disabled = false;
+
+                form.requestSubmit(submitButton);
+
+            } catch (error) {
+
+                console.error(
+                    'Lỗi lưu phiếu kiểm kho:',
+                    error
+                );
+
+                showLockStatus(
+                    'Không thể kiểm tra khóa trước khi lưu.',
+                    true
+                );
+
+                formIsSubmitting = false;
+
+            } finally {
+
+                submittingLock = false;
+
+                if (!formIsSubmitting) {
+                    submitButton.disabled = false;
+                }
+            }
+
+        }
+    );
+
+
+    // ==========================================
+    // 13. GIAI PHONG KHOA KHI HUY
+    // ==========================================
+
+    if (
+        IS_CREATING &&
+        cancelLink &&
+        tokenInput
+    ) {
+        cancelLink.addEventListener(
+            'click',
+            async function(event) {
+
+                event.preventDefault();
+
+                clearTimeout(syncTimer);
+
+                await syncQueue.catch(
+                    () => null
+                );
+
+                await postDraft(
+                    releaseUrl,
+                    {
+                        phien_tao: tokenInput.value
+                    }
+                );
+
+                window.location.assign(
+                    cancelLink.href
+                );
+            }
+        );
+
+        window.addEventListener(
+            'pagehide',
+            function() {
+
+                if (formIsSubmitting) {
+                    return;
+                }
+
+                clearTimeout(syncTimer);
+
+                postDraft(
+                    releaseUrl,
+                    {
+                        phien_tao: tokenInput.value
+                    },
+                    true
+                );
+            }
+        );
+    }
+
+
+    // ==========================================
+    // 14. SU KIEN DOI KHO, DOI LOAI KIEM KE
+    // ==========================================
+
+    typeSelect.addEventListener(
+        'change',
+        () => {
+            switchMode();
+            scheduleDraftSync();
+        }
+    );
+
+    khoSelect.addEventListener(
+        'change',
+        () => {
+            switchMode();
+            scheduleDraftSync();
+        }
+    );
+
+
+    // ==========================================
+    // 15. CAP NHAT DINH KY
+    // ==========================================
+
+    setInterval(
+        () => {
+
+            if (
+                document.visibilityState !== 'visible' ||
+                formIsSubmitting
+            ) {
+                return;
+            }
+
+            refreshLockStatus();
+
+        },
+        4000
+    );
+
+
+    // Gia han khoa tam moi 45 giay,
+    // trong khi thoi han khoa phia server la 120 giay.
+
+    if (IS_CREATING) {
+
+        setInterval(
+            () => {
+
+                if (
+                    !formIsSubmitting &&
+                    document.visibilityState === 'visible'
+                ) {
+                    clearTimeout(syncTimer);
+                    syncDraftLocks();
+                }
+
+            },
+            45000
+        );
+    }
+
+
+    document.addEventListener(
+        'visibilitychange',
+        () => {
+
+            if (
+                document.visibilityState === 'visible' &&
+                !formIsSubmitting
+            ) {
+                if (IS_CREATING) {
+                    syncDraftLocks();
+                } else {
+                    refreshLockStatus();
+                }
+            }
+        }
+    );
+
+
+    window.addEventListener(
+        'focus',
+        () => {
+
+            if (!formIsSubmitting) {
+                refreshLockStatus();
+            }
+        }
+    );
+
+
+    // ==========================================
+    // 16. KHOI TAO TRANG
+    // ==========================================
+
+    window.addLine = addLine;
+    window.removeLine = removeLine;
+
+    switchMode(true);
+
+    refreshLockStatus();
+
+    if (IS_CREATING) {
+        scheduleDraftSync();
+    }
+
+})();
+</script>
+
+{% endblock %}

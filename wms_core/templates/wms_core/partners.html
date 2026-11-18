@@ -1,0 +1,722 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}Danh mục đối tác | XONXEN WMS{% endblock %}
+
+{% block content %}
+
+<style>
+    .partner-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .partner-modal {
+        border: 0;
+        border-radius: 16px;
+        padding: 0;
+        width: min(540px, calc(100% - 32px));
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 65px rgba(0,0,0,.2);
+    }
+
+    .partner-modal::backdrop {
+        background: rgba(30,20,15,.55);
+    }
+
+    .partner-modal-head {
+        padding: 20px 24px;
+        background: #FFF3EA;
+        border-bottom: 1px solid #F0D6C6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .partner-modal-head h2 {
+        color: #9C4313;
+        font-size: 19px;
+        font-weight: 800;
+    }
+
+    .partner-modal-body {
+        padding: 22px 24px;
+    }
+
+    .partner-field {
+        margin-bottom: 16px;
+    }
+
+    .partner-field label {
+        display: block;
+        margin-bottom: 7px;
+        color: #7D482D;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .partner-field input,
+    .partner-field select {
+        width: 100%;
+        border: 1px solid #E8CEBD;
+        border-radius: 9px;
+        padding: 11px 12px;
+        background: #fff;
+        outline: none;
+    }
+
+    .partner-field input:focus,
+    .partner-field select:focus {
+        border-color: #E86A20;
+        box-shadow: 0 0 0 3px rgba(232,106,32,.12);
+    }
+
+    .partner-field input[aria-invalid="true"] {
+        border-color: #BE2B21;
+        box-shadow: 0 0 0 3px rgba(190,43,33,.10);
+    }
+
+    .partner-error {
+        color: #B42318;
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 6px;
+    }
+
+    .partner-alert {
+        color: #B42318;
+        background: #FFF0EE;
+        border: 1px solid #F5C2BC;
+        border-radius: 9px;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+        font-size: 13px;
+    }
+
+    .partner-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .partner-cancel {
+        border: 1px solid #E8CEBD;
+        border-radius: 9px;
+        padding: 10px 20px;
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .partner-state {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .partner-state--active {
+        color: #187443;
+        background: #E8F7ED;
+    }
+
+    .partner-state--inactive {
+        color: #7A4234;
+        background: #F4E6E1;
+    }
+
+    .partner-status-button {
+        background: white;
+        border: 1px solid #E8CEBD;
+        border-radius: 8px;
+        padding: 7px 11px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+        color: #A1451B;
+        white-space: nowrap;
+    }
+
+    .partner-status-button:hover {
+        background: #FFF3EA;
+    }
+
+    @media (max-width: 640px) {
+        .partner-modal-body {
+            padding: 18px;
+        }
+
+        .partner-actions {
+            flex-direction: column-reverse;
+        }
+    }
+</style>
+
+
+<!-- ========================================== -->
+<!-- 1. TIÊU ĐỀ VÀ NÚT THÊM ĐỐI TÁC -->
+<!-- ========================================== -->
+
+<div class="partner-heading">
+
+    <div>
+        <h1 class="text-2xl font-bold mb-1">
+            Danh mục đối tác
+        </h1>
+
+
+    </div>
+
+    {% if is_manager %}
+    <button
+        type="button"
+        class="btn"
+        onclick="openPartnerModal()"
+    >
+        <i class="fa-solid fa-plus mr-1"></i>
+        Thêm đối tác
+    </button>
+    {% endif %}
+
+</div>
+
+
+<!-- ========================================== -->
+<!-- 2. TÌM KIẾM VÀ LỌC ĐỐI TÁC -->
+<!-- ========================================== -->
+
+<form
+    method="get"
+    action="{% url 'wms_partners' %}"
+    class="box p-4 mb-5 flex flex-wrap items-center gap-3"
+>
+
+    <input
+        type="text"
+        class="field flex-1 min-w-[230px]"
+        name="q"
+        value="{{ search }}"
+        placeholder="Tìm mã hoặc tên đối tác"
+    >
+
+    <select
+        name="loai"
+        class="field w-full sm:w-60"
+    >
+
+        <option value="">
+            Tất cả loại đối tác
+        </option>
+
+        <option
+            value="NCC"
+            {% if selected_type == 'NCC' %}selected{% endif %}
+        >
+            Nhà cung cấp
+        </option>
+
+        <option
+            value="XUONG"
+            {% if selected_type == 'XUONG' %}selected{% endif %}
+        >
+            Xưởng gia công
+        </option>
+
+    </select>
+
+    <button type="submit" class="btn">
+        Tìm kiếm
+    </button>
+
+    {% if search or selected_type %}
+
+    <a
+        href="{% url 'wms_partners' %}"
+        class="text-sm text-slate-500 hover:underline"
+    >
+        Xóa lọc
+    </a>
+
+    {% endif %}
+
+</form>
+
+
+<!-- ========================================== -->
+<!-- 3. BẢNG DANH SÁCH ĐỐI TÁC -->
+<!-- ========================================== -->
+
+<div class="box overflow-x-auto">
+
+    <table class="table">
+
+        <thead>
+            <tr>
+                <th>Mã đối tác</th>
+                <th>Tên đối tác</th>
+                <th>Loại đối tác</th>
+                <th>Số điện thoại</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+
+                {% if is_manager %}
+                <th>Thao tác</th>
+                {% endif %}
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for x in rows %}
+
+            <tr>
+
+                <!-- MÃ ĐỐI TÁC -->
+                <td class="font-semibold">
+                    {{ x.ma_doi_tac }}
+                </td>
+
+                <!-- TÊN ĐỐI TÁC -->
+                <td>
+                    {{ x.ten_doi_tac }}
+                </td>
+
+                <!-- LOẠI ĐỐI TÁC -->
+                <td>
+                    {{ x.get_loai_doi_tac_display }}
+                </td>
+
+                <!-- SỐ ĐIỆN THOẠI -->
+                <td>
+                    {{ x.so_dien_tho|default:'-' }}
+                </td>
+
+                <!-- ĐỊA CHỈ -->
+                <td>
+                    {{ x.dia_chi|default:'-' }}
+                </td>
+
+                <!-- TRẠNG THÁI -->
+                <td>
+
+                    {% if x.trang_thai %}
+
+                        <span class="partner-state partner-state--active">
+                            Hoạt động
+                        </span>
+
+                    {% else %}
+
+                        <span class="partner-state partner-state--inactive">
+                            Ngừng hoạt động
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+
+                <!-- CHỈ QUẢN LÝ ĐƯỢC ĐỔI TRẠNG THÁI -->
+                {% if is_manager %}
+
+                <td>
+
+                    <form
+                        method="post"
+                        action="{% url 'wms_partner_status' x.pk %}"
+                        onsubmit="return confirmPartnerStatus(this);"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="partner-status-button"
+                            data-partner-name="{{ x.ten_doi_tac }}"
+                            data-active="{% if x.trang_thai %}1{% else %}0{% endif %}"
+                        >
+
+                            {% if x.trang_thai %}
+                                Ngừng hoạt động
+                            {% else %}
+                                Kích hoạt lại
+                            {% endif %}
+
+                        </button>
+
+                    </form>
+
+                </td>
+
+                {% endif %}
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+                <td
+                    colspan="{% if is_manager %}7{% else %}6{% endif %}"
+                    class="text-center text-slate-500 py-8"
+                >
+                    Không tìm thấy đối tác phù hợp.
+                </td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+
+<!-- ========================================== -->
+<!-- 4. POPUP THÊM ĐỐI TÁC -->
+<!-- ========================================== -->
+
+{% if is_manager %}
+
+<dialog
+    id="partnerModal"
+    class="partner-modal"
+>
+
+    <!-- TIÊU ĐỀ POPUP -->
+
+    <div class="partner-modal-head">
+
+        <h2>
+            Thêm đối tác mới
+        </h2>
+
+        <button
+            type="button"
+            onclick="closePartnerModal()"
+            aria-label="Đóng"
+            style="font-size:26px;color:#875338;"
+        >
+            &times;
+        </button>
+
+    </div>
+
+
+    <!-- FORM THÊM ĐỐI TÁC -->
+
+    <form
+        method="post"
+        action="{% url 'wms_create_partner' %}"
+        class="partner-modal-body"
+        id="partnerCreateForm"
+    >
+
+        {% csrf_token %}
+
+
+        <!-- LỖI CHUNG CỦA FORM -->
+
+        {% if partner_form_error %}
+
+        <div
+            class="partner-alert"
+            role="alert"
+        >
+            {{ partner_form_error }}
+        </div>
+
+        {% endif %}
+
+
+
+<!-- MÃ ĐỐI TÁC -->
+
+<div class="partner-field">
+
+    <label for="ma_doi_tac">
+        Mã đối tác *
+    </label>
+
+    <input
+        id="ma_doi_tac"
+        name="ma_doi_tac"
+        maxlength="40"
+        required
+        value="{{ partner_draft.ma_doi_tac|default:'' }}"
+        {% if partner_code_error %}aria-invalid="true"{% endif %}
+        aria-describedby="partner-code-error"
+        placeholder="Ví dụ: NCC-VAI-01"
+    >
+
+    <p
+        id="partner-code-error"
+        class="partner-error"
+        role="alert"
+        {% if not partner_code_error %}hidden{% endif %}
+    >
+        {{ partner_code_error }}
+    </p>
+
+</div>
+
+        <!-- TÊN ĐỐI TÁC -->
+
+        <div class="partner-field">
+
+            <label for="ten_doi_tac">
+                Tên đối tác *
+            </label>
+
+            <input
+                id="ten_doi_tac"
+                name="ten_doi_tac"
+                maxlength="220"
+                required
+                value="{{ partner_draft.ten_doi_tac|default:'' }}"
+                placeholder="Nhập tên đối tác"
+            >
+
+        </div>
+
+
+        <!-- LOẠI ĐỐI TÁC -->
+
+        <div class="partner-field">
+
+            <label for="loai_doi_tac">
+                Loại đối tác *
+            </label>
+
+            <select
+                id="loai_doi_tac"
+                name="loai_doi_tac"
+                required
+            >
+
+                <option
+                    value="NCC"
+                    {% if partner_draft.loai_doi_tac != 'XUONG' %}
+                        selected
+                    {% endif %}
+                >
+                    Nhà cung cấp
+                </option>
+
+                <option
+                    value="XUONG"
+                    {% if partner_draft.loai_doi_tac == 'XUONG' %}
+                        selected
+                    {% endif %}
+                >
+                    Xưởng gia công
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- SỐ ĐIỆN THOẠI -->
+
+        <div class="partner-field">
+
+            <label for="so_dien_tho">
+                Số điện thoại
+            </label>
+
+            <input
+                id="so_dien_tho"
+                name="so_dien_tho"
+                type="tel"
+                inputmode="numeric"
+                maxlength="11"
+                pattern="[0-9]{10,11}"
+                value="{{ partner_draft.so_dien_tho|default:'' }}"
+                placeholder="Ví dụ: 0905123456"
+            >
+
+        </div>
+
+
+        <!-- ĐỊA CHỈ -->
+
+        <div class="partner-field">
+
+            <label for="dia_chi">
+                Địa chỉ
+            </label>
+
+            <input
+                id="dia_chi"
+                name="dia_chi"
+                value="{{ partner_draft.dia_chi|default:'' }}"
+                placeholder="Nhập địa chỉ đối tác"
+            >
+
+        </div>
+
+
+        <!-- KHÔNG CÓ Ô TRẠNG THÁI -->
+        <!-- ĐỐI TÁC MỚI MẶC ĐỊNH HOẠT ĐỘNG -->
+
+
+        <!-- NÚT HỦY / LƯU -->
+
+        <div class="partner-actions">
+
+            <button
+                type="button"
+                class="partner-cancel"
+                onclick="closePartnerModal()"
+            >
+                Hủy
+            </button>
+
+            <button
+                type="submit"
+                class="btn"
+            >
+                Lưu đối tác
+            </button>
+
+        </div>
+
+    </form>
+
+</dialog>
+
+
+<!-- ========================================== -->
+<!-- 5. JAVASCRIPT -->
+<!-- ========================================== -->
+
+{{ partner_codes|json_script:"existing-partner-codes" }}
+
+<script>
+
+const existingPartnerCodes = new Set(
+    JSON.parse(
+        document.getElementById('existing-partner-codes').textContent
+    ).map(code => String(code).trim().toUpperCase())
+);
+
+const partnerCodeInput = document.getElementById('ma_doi_tac');
+const partnerCodeError = document.getElementById('partner-code-error');
+
+function validatePartnerCode() {
+    const code = partnerCodeInput.value.trim().toUpperCase();
+
+    const duplicated =
+        code !== '' && existingPartnerCodes.has(code);
+
+    partnerCodeError.textContent = duplicated
+        ? 'Mã đối tác ' + code + ' đã tồn tại. Vui lòng nhập mã khác.'
+        : '';
+
+    partnerCodeError.hidden = !duplicated;
+
+    partnerCodeInput.setAttribute(
+        'aria-invalid',
+        duplicated ? 'true' : 'false'
+    );
+
+    partnerCodeInput.setCustomValidity(
+        duplicated ? 'Mã đối tác đã tồn tại.' : ''
+    );
+
+    return !duplicated;
+}
+
+partnerCodeInput.addEventListener('input', validatePartnerCode);
+partnerCodeInput.addEventListener('blur', validatePartnerCode);
+
+document.getElementById('partnerCreateForm')
+    .addEventListener('submit', function(event) {
+        if (!validatePartnerCode()) {
+            event.preventDefault();
+            partnerCodeInput.focus();
+        }
+    });
+
+    // MỞ POPUP THÊM ĐỐI TÁC
+    function openPartnerModal() {
+
+        const modal = document.getElementById('partnerModal');
+
+        if (modal && !modal.open) {
+            modal.showModal();
+        }
+
+    }
+
+
+    // ĐÓNG POPUP
+    function closePartnerModal() {
+
+        const modal = document.getElementById('partnerModal');
+
+        if (modal && modal.open) {
+            modal.close();
+        }
+
+    }
+
+
+    // XÁC NHẬN NGỪNG HOẠT ĐỘNG / KÍCH HOẠT LẠI
+    function confirmPartnerStatus(form) {
+
+        const button = form.querySelector('button');
+        const name = button.dataset.partnerName;
+        const active = button.dataset.active === '1';
+
+        if (active) {
+
+            return window.confirm(
+                'Ngừng hoạt động đối tác "' + name + '"? ' +
+                'Đối tác sẽ không còn được chọn khi lập phiếu mới.'
+            );
+
+        }
+
+        return window.confirm(
+            'Kích hoạt lại đối tác "' + name + '"?'
+        );
+
+    }
+
+
+    // NẾU LƯU BỊ LỖI: MỞ LẠI POPUP
+    // VÀ GIỮ NGUYÊN THÔNG TIN ĐÃ NHẬP
+
+    {% if reopen_partner_modal %}
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        function() {
+
+            openPartnerModal();
+
+            const codeField = document.getElementById('ma_doi_tac');
+
+            if (codeField) {
+                codeField.focus();
+            }
+
+        }
+    );
+
+    {% endif %}
+
+</script>
+
+{% endif %}
+
+{% endblock %}

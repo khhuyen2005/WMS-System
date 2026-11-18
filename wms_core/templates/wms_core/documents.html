@@ -1,0 +1,436 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}
+Phiếu {% if direction == 'nhap' %}nhập{% else %}xuất{% endif %} kho | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<!-- ==========================================
+     1. TIEU DE
+========================================== -->
+
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+
+    <div>
+        <h1 class="text-2xl font-bold text-orange-900">
+            Phiếu
+            {% if direction == 'nhap' %}
+                nhập
+            {% else %}
+                xuất
+            {% endif %}
+
+            {% if kind == 'NVL' %}
+                nguyên vật liệu
+            {% elif kind == 'TP' %}
+                thành phẩm
+            {% else %}
+                kho
+            {% endif %}
+        </h1>
+    </div>
+
+    <a
+        class="btn"
+        href="{% url 'wms_new_document' direction %}{% if kind %}?kind={{ kind }}{% endif %}"
+    >
+        <i class="fa-solid fa-plus mr-2"></i>
+        Tạo phiếu mới
+    </a>
+
+</div>
+
+
+<!-- ==========================================
+     2. BO LOC DANH SACH
+========================================== -->
+
+<div class="box p-4 mb-5">
+
+    <form
+        method="get"
+        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-end"
+    >
+
+        <!-- GIU LOAI KHO -->
+        {% if kind %}
+        <input
+            type="hidden"
+            name="kind"
+            value="{{ kind }}"
+        >
+        {% endif %}
+
+
+        <!-- TIM MA PHIEU -->
+        <div>
+            <label for="filter-code">
+                Tìm mã phiếu
+            </label>
+
+            <input
+                id="filter-code"
+                class="field w-full"
+                type="text"
+                name="q"
+                value="{{ keyword }}"
+                placeholder="Nhập mã phiếu..."
+            >
+        </div>
+
+
+        <!-- LOC TRANG THAI -->
+        <div>
+            <label for="filter-status">
+                Trạng thái
+            </label>
+
+            <select
+                id="filter-status"
+                class="field w-full"
+                name="status"
+            >
+                <option value="">
+                    Tất cả trạng thái
+                </option>
+
+                <option
+                    value="nhap"
+                    {% if status == 'nhap' %}selected{% endif %}
+                >
+                    Nháp
+                </option>
+
+                <option
+                    value="cho_duyet"
+                    {% if status == 'cho_duyet' %}selected{% endif %}
+                >
+                    Chờ duyệt
+                </option>
+
+                <option
+                    value="da_duyet"
+                    {% if status == 'da_duyet' %}selected{% endif %}
+                >
+                    Đã phê duyệt
+                </option>
+
+                <option
+                    value="tu_choi"
+                    {% if status == 'tu_choi' %}selected{% endif %}
+                >
+                    Đã từ chối
+                </option>
+
+                <option
+                    value="da_huy"
+                    {% if status == 'da_huy' %}selected{% endif %}
+                >
+                    Đã hủy
+                </option>
+            </select>
+        </div>
+
+
+        <!-- TU NGAY -->
+        <div>
+            <label for="filter-start">
+                Từ ngày
+            </label>
+
+            <input
+                id="filter-start"
+                class="field w-full"
+                type="date"
+                name="tu_ngay"
+                value="{{ start_date }}"
+            >
+        </div>
+
+
+        <!-- DEN NGAY -->
+        <div>
+            <label for="filter-end">
+                Đến ngày
+            </label>
+
+            <input
+                id="filter-end"
+                class="field w-full"
+                type="date"
+                name="den_ngay"
+                value="{{ end_date }}"
+            >
+        </div>
+
+
+        <!-- NUT LOC -->
+        <div class="flex items-end gap-2">
+
+            <button
+                class="btn"
+                type="submit"
+            >
+                <i class="fa-solid fa-magnifying-glass mr-1"></i>
+                Lọc
+            </button>
+
+            <a
+                class="btn2"
+                href="{% url 'wms_documents' direction %}{% if kind %}?kind={{ kind }}{% endif %}"
+            >
+                Xóa lọc
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- ==========================================
+     3. DANH SACH PHIEU
+========================================== -->
+
+<div class="box overflow-x-auto mb-6">
+
+    <table class="table">
+
+        <thead>
+            <tr>
+                <th>Mã phiếu</th>
+                <th>Đối tác</th>
+                <th>Người lập</th>
+                <th>Ngày tạo</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for x in rows %}
+
+            <tr>
+
+                <!-- MA PHIEU -->
+                <td class="font-bold text-orange-800">
+
+                    {% if direction == 'nhap' %}
+                        {{ x.ma_phieu_nhap }}
+                    {% else %}
+                        {{ x.ma_phieu_xuat }}
+                    {% endif %}
+
+                    {% if x.kiem_kho_id %}
+                    <div
+                        class="text-xs mt-1"
+                        style="color:#A34A17;"
+                    >
+                        Cân bằng kiểm kho
+                        {{ x.kiem_kho.ma_phieu }}
+                    </div>
+                    {% endif %}
+
+                </td>
+
+
+                <!-- DOI TAC -->
+                <td>
+
+                    {% if x.kiem_kho_id %}
+
+                        Điều chỉnh nội bộ
+
+                    {% else %}
+
+                        {{ x.doi_tac.ten_doi_tac|default:'-' }}
+
+                    {% endif %}
+
+                </td>
+
+
+                <!-- NGUOI LAP -->
+                <td>
+                    {{ x.nguoi_lap.ho_ten|default:'-' }}
+                </td>
+
+
+                <!-- NGAY TAO -->
+                <td>
+                    {{ x.thoi_gian_lap|date:'d/m/Y H:i' }}
+                </td>
+
+
+                <!-- TRANG THAI -->
+                <td>
+
+                    {% if x.trang_thai == 'nhap' %}
+
+                        <span class="tag">
+                            <i class="fa-regular fa-file-lines mr-1"></i>
+                            Nháp
+                        </span>
+
+                    {% elif x.trang_thai == 'cho_duyet' %}
+
+                        <span class="tag">
+                            <i class="fa-regular fa-clock mr-1"></i>
+                            Chờ duyệt
+                        </span>
+
+                    {% elif x.trang_thai == 'da_duyet' %}
+
+                        <span
+                            class="tag"
+                            style="background:#E8F7ED;color:#187443;"
+                        >
+                            <i class="fa-solid fa-circle-check mr-1"></i>
+                            Đã phê duyệt
+                        </span>
+
+                    {% elif x.trang_thai == 'tu_choi' %}
+
+                        <span
+                            class="tag"
+                            style="background:#FEECEC;color:#B42318;"
+                        >
+                            <i class="fa-solid fa-circle-xmark mr-1"></i>
+                            Đã từ chối
+                        </span>
+
+                    {% elif x.trang_thai == 'da_huy' %}
+
+                        <span
+                            class="tag"
+                            style="background:#F1F1F1;color:#666;"
+                        >
+                            <i class="fa-solid fa-ban mr-1"></i>
+                            Đã hủy
+                        </span>
+
+                    {% else %}
+
+                        <span class="tag">
+                            {{ x.trang_thai }}
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+
+                <!-- =====================================
+                     THAO TAC
+                ====================================== -->
+
+                <td>
+
+                    <div
+                        class="flex flex-nowrap items-center gap-2"
+                        style="white-space:nowrap;"
+                    >
+
+                        <!-- NUT XEM CHI TIET -->
+                        <!-- HIEN THI VOI MOI TRANG THAI -->
+
+                        <a
+                            class="btn2"
+                            href="{% url 'wms_document_detail' direction x.pk %}"
+                            title="Xem chi tiết phiếu"
+                        >
+                            <i class="fa-solid fa-eye mr-1"></i>
+                            Xem chi tiết
+                        </a>
+
+
+                        <!-- =====================================
+                             CHI PHIEU NHAP MOI CO NUT SUA XOA
+                        ====================================== -->
+
+                        {% if x.trang_thai == 'nhap' and not x.kiem_kho_id %}
+
+                            <!-- QUAN LY HOAC NGUOI LAP -->
+                            {% if is_manager or x.nguoi_lap_id == request.wms_account.pk %}
+
+
+                                <!-- ======================
+                                     NUT SUA
+                                     VAO THANG FORM SUA
+                                ======================= -->
+
+                                <a
+                                    class="btn2"
+                                    href="{% url 'wms_edit_document' direction x.pk %}"
+                                    title="Chỉnh sửa phiếu nháp"
+                                >
+                                    <i class="fa-solid fa-pen-to-square mr-1"></i>
+                                    Sửa
+                                </a>
+
+
+                                <!-- ======================
+                                     NUT XOA
+                                     XOA NGAY TAI DANH SACH
+                                     CO HOP XAC NHAN
+                                ======================= -->
+
+                                <form
+                                    method="post"
+                                    action="{% url 'wms_delete_draft_document' direction x.pk %}"
+                                    style="margin:0;"
+                                    onsubmit="return confirm('Bạn có chắc muốn xóa vĩnh viễn phiếu nháp này? Thao tác không thể hoàn tác.');"
+                                >
+
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="btn2"
+                                        style="color:#B42318;border-color:#F4C0B7;"
+                                        title="Xóa phiếu nháp"
+                                    >
+                                        <i class="fa-solid fa-trash-can mr-1"></i>
+                                        Xóa
+                                    </button>
+
+                                </form>
+
+
+                            {% endif %}
+
+                        {% endif %}
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+
+            <!-- KHONG CO DU LIEU -->
+            {% empty %}
+
+            <tr>
+                <td
+                    colspan="6"
+                    class="text-center text-slate-500 py-8"
+                >
+                    <i class="fa-regular fa-folder-open mr-2"></i>
+                    Chưa có phiếu phù hợp với điều kiện lọc.
+                </td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

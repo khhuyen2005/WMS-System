@@ -1,0 +1,282 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}{{ title }} | XONXEN WMS{% endblock %}
+
+{% block content %}
+<style>
+    .gf-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+    }
+
+    .gf-card {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #F3DDCD;
+        border-radius: 22px;
+        box-shadow: 0 14px 36px rgba(168, 67, 19, .08);
+    }
+
+    .gf-card::before {
+        content: "";
+        display: block;
+        height: 6px;
+        background: linear-gradient(90deg, #F58A3A, #D9631F, #A84313);
+    }
+
+    .gf-body {
+        padding: 30px 34px 34px;
+    }
+
+    .gf-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 15px;
+        font-weight: 800;
+        color: #7A2E0B;
+        padding-bottom: 14px;
+        margin-bottom: 22px;
+        border-bottom: 1px dashed #F0D5C2;
+    }
+
+    .gf-section i {
+        color: #E86A20;
+    }
+
+    .gf-label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #6B4A38;
+        margin-bottom: 8px;
+        letter-spacing: .2px;
+    }
+
+    .gf-card .field {
+        width: 100%;
+        background: #fff;
+        color: #3E2A1E;
+        border: 1.5px solid #EBD3C2;
+        border-radius: 13px;
+        padding: 13px 15px;
+        font-size: 14px;
+        transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+
+    .gf-card .field::placeholder {
+        color: #B9A394;
+    }
+
+    .gf-card .field:hover {
+        border-color: #E3B79B;
+    }
+
+    .gf-card .field:focus {
+        outline: none;
+        border-color: #E86A20;
+        box-shadow: 0 0 0 4px rgba(232, 106, 32, .15);
+    }
+
+    .gf-card .field[aria-invalid="true"] {
+        border-color: #C2331F;
+    }
+
+    .gf-code-box {
+        width: 100%;
+        background: #FFF8F2;
+        color: #7A2E0B;
+        border: 1.5px solid #EBD3C2;
+        border-radius: 13px;
+        padding: 13px 15px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .gf-hint {
+        font-size: 12px;
+        color: #9A8272;
+        margin-top: 7px;
+    }
+
+    .gf-error {
+        font-size: 12.5px;
+        color: #C2331F;
+        margin-top: 7px;
+        font-weight: 600;
+    }
+
+    .gf-note {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        background: #FFF7EC;
+        border: 1px solid #F7D9B5;
+        border-left: 5px solid #F0A04B;
+        border-radius: 14px;
+        padding: 16px 18px;
+        margin-top: 28px;
+        color: #7A4A12;
+        font-size: 13px;
+        line-height: 1.65;
+    }
+
+    .gf-note i {
+        color: #E38A1F;
+        font-size: 18px;
+        margin-top: 2px;
+    }
+
+    .gf-alert {
+        background: #FEF0EE;
+        color: #B42318;
+        border: 1px solid #F5C2BC;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .gf-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-top: 28px;
+        padding-top: 22px;
+        border-top: 1px solid #F6E6DA;
+    }
+
+    @media (max-width: 640px) {
+        .gf-body {
+            padding: 22px 18px 24px;
+        }
+
+        .gf-actions {
+            flex-direction: column-reverse;
+        }
+
+        .gf-actions .btn,
+        .gf-actions .btn2 {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="gf-wrap">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-7">
+        <h1 class="text-2xl font-extrabold text-orange-900">
+            {{ title }}
+        </h1>
+
+        <a href="{% url 'wms_goods' kind %}" class="btn2">
+            <i class="fa-solid fa-arrow-left mr-1"></i>
+            Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="gf-card">
+        <div class="gf-body">
+            <form method="post" id="goods-form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="gf-alert" role="alert">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                    {% for error in form.non_field_errors %}
+                    <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="gf-section">
+                    <i class="fa-solid fa-box-open"></i>
+                    {% if kind == 'NVL' %}
+                        Thông tin nguyên vật liệu
+                    {% else %}
+                        Thông tin thành phẩm
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+
+                    {% if next_code %}
+                    <div>
+                        <span class="gf-label">
+                            {% if kind == 'NVL' %}
+                                Mã nguyên vật liệu (tự động)
+                            {% else %}
+                                Mã thành phẩm (tự động)
+                            {% endif %}
+                        </span>
+
+                        <div class="gf-code-box">
+                            {{ next_code }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% for field in form %}
+                        {% if field.is_hidden %}
+                            {{ field }}
+                        {% else %}
+                        <div>
+                            <label
+                                class="gf-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                {{ field.label }}
+                                {% if field.field.required %}
+                                    <span class="text-red-500">*</span>
+                                {% endif %}
+                            </label>
+
+                            {{ field }}
+
+                            {% if field.help_text %}
+                            <p class="gf-hint">
+                                {{ field.help_text }}
+                            </p>
+                            {% endif %}
+
+                            {% for error in field.errors %}
+                            <p class="gf-error" role="alert">
+                                {{ error }}
+                            </p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+
+
+                <div class="gf-actions">
+                    <a
+                        href="{% url 'wms_goods' kind %}"
+                        class="btn2"
+                    >
+                        Hủy
+                    </a>
+
+                    <button type="submit" class="btn">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i>
+                        {% if kind == 'NVL' %}
+                            Lưu nguyên vật liệu
+                        {% else %}
+                            Lưu thành phẩm
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

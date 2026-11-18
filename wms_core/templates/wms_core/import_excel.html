@@ -1,0 +1,206 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block content %}
+
+<!-- TIÊU ĐỀ -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold mb-1">
+        Nhập dữ liệu Excel XONXEN
+    </h1>
+</div>
+
+<!-- THÔNG BÁO KẾT QUẢ NHẬP EXCEL -->
+{% if summary %}
+<div class="box p-4 mb-5 border-l-4 border-orange-500">
+    <p class="font-semibold mb-1">
+        Đã xử lý tệp Excel thành công
+    </p>
+
+    {% if summary_type == 'NCC' %}
+        <p>
+            Đối tác mới:
+            <strong>{{ summary.new_partners }}</strong>
+            · Mã đã có:
+            <strong>{{ summary.existing_partners }}</strong>
+        </p>
+    {% else %}
+        <p>
+            Hàng hóa mới:
+            <strong>{{ summary.new_goods }}</strong>
+            · Mã đã có:
+            <strong>{{ summary.existing_goods }}</strong>
+            · Dòng tồn đầu kỳ mới:
+            <strong>{{ summary.opening_lines }}</strong>
+        </p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- BA KHU VỰC NHẬP EXCEL -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+{% if is_manager or allowed_kind == 'NVL' %}
+    <!-- 1. NGUYÊN VẬT LIỆU -->
+    <section class="box p-5 flex flex-col gap-4">
+
+        <div class="flex items-center gap-3">
+            <div class="rounded-lg bg-orange-50 text-orange-700 p-3">
+                <i class="fa-solid fa-layer-group text-xl"></i>
+            </div>
+
+            <h2 class="text-lg font-bold">
+                Nguyên vật liệu
+            </h2>
+        </div>
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            class="mt-auto pt-3"
+        >
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="import_type"
+                value="NVL"
+            >
+
+            <label
+                for="file-nvl"
+                class="block font-semibold mb-2"
+            >
+                File nguyên vật liệu (.xlsx)
+            </label>
+
+            <input
+                id="file-nvl"
+                name="excel"
+                type="file"
+                accept=".xlsx"
+                required
+                class="field w-full mb-3"
+            >
+
+            <button
+                type="submit"
+                class="btn w-full"
+            >
+                <i class="fa-solid fa-file-import mr-1"></i>
+                Kiểm tra và nhập NVL
+            </button>
+
+        </form>
+    </section>
+{% endif %}
+{% if is_manager or allowed_kind == 'TP' %}
+    <!-- 2. THÀNH PHẨM -->
+    <section class="box p-5 flex flex-col gap-4">
+
+        <div class="flex items-center gap-3">
+            <div class="rounded-lg bg-orange-50 text-orange-700 p-3">
+                <i class="fa-solid fa-shirt text-xl"></i>
+            </div>
+
+            <h2 class="text-lg font-bold">
+                Thành phẩm
+            </h2>
+        </div>
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            class="mt-auto pt-3"
+        >
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="import_type"
+                value="TP"
+            >
+
+            <label
+                for="file-tp"
+                class="block font-semibold mb-2"
+            >
+                File thành phẩm (.xlsx)
+            </label>
+
+            <input
+                id="file-tp"
+                name="excel"
+                type="file"
+                accept=".xlsx"
+                required
+                class="field w-full mb-3"
+            >
+
+            <button
+                type="submit"
+                class="btn w-full"
+            >
+                <i class="fa-solid fa-file-import mr-1"></i>
+                Kiểm tra và nhập thành phẩm
+            </button>
+
+        </form>
+    </section>
+{% endif %}
+{% if is_manager %}
+    <!-- 3. NHÀ CUNG CẤP -->
+    <section class="box p-5 flex flex-col gap-4">
+
+        <div class="flex items-center gap-3">
+            <div class="rounded-lg bg-orange-50 text-orange-700 p-3">
+                <i class="fa-solid fa-truck-field text-xl"></i>
+            </div>
+
+            <h2 class="text-lg font-bold">
+                Nhà cung cấp
+            </h2>
+        </div>
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            class="mt-auto pt-3"
+        >
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="import_type"
+                value="NCC"
+            >
+
+            <label
+                for="file-ncc"
+                class="block font-semibold mb-2"
+            >
+                File nhà cung cấp (.xlsx)
+            </label>
+
+            <input
+                id="file-ncc"
+                name="excel"
+                type="file"
+                accept=".xlsx"
+                required
+                class="field w-full mb-3"
+            >
+
+            <button
+                type="submit"
+                class="btn w-full"
+            >
+                <i class="fa-solid fa-file-import mr-1"></i>
+                Kiểm tra và nhập nhà cung cấp
+            </button>
+
+        </form>
+    </section>
+{% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,226 @@
+
+{% extends 'wms_core/base.html' %}
+
+{% block title %}
+Tài khoản & phân quyền | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<!-- =====================================
+     TIEU DE
+====================================== -->
+
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-orange-900">
+        Tài khoản & phân quyền
+    </h1>
+</div>
+
+
+<!-- =====================================
+     BANG DANH SACH TAI KHOAN
+====================================== -->
+
+<div class="box overflow-x-auto">
+
+    <table class="table w-full">
+
+        <thead>
+            <tr>
+                <th>Tên đăng nhập</th>
+                <th>Họ tên</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for x in rows %}
+
+            <tr>
+
+                <!-- TEN DANG NHAP -->
+                <td class="font-semibold">
+                    {{ x.user.username }}
+                </td>
+
+
+                <!-- HO TEN -->
+                <td>
+                    {{ x.ho_ten }}
+                </td>
+
+
+                <!-- VAI TRO -->
+                <td>
+                    {{ x.vai_tro.ten_vai_tro }}
+                </td>
+
+
+                <!-- TRANG THAI -->
+                <td>
+
+                    {% if x.trang_thai and x.user.is_active %}
+
+                        <span
+                            style="
+                                display:inline-flex;
+                                align-items:center;
+                                gap:6px;
+                                background:#E8F7ED;
+                                color:#187443;
+                                padding:6px 11px;
+                                border-radius:20px;
+                                font-size:12px;
+                                font-weight:600;
+                                white-space:nowrap;
+                            "
+                        >
+                            <i class="fa-solid fa-circle-check"></i>
+                            Hoạt động
+                        </span>
+
+                    {% else %}
+
+                        <span
+                            style="
+                                display:inline-flex;
+                                align-items:center;
+                                gap:6px;
+                                background:#FEECEC;
+                                color:#B42318;
+                                padding:6px 11px;
+                                border-radius:20px;
+                                font-size:12px;
+                                font-weight:600;
+                                white-space:nowrap;
+                            "
+                        >
+                            <i class="fa-solid fa-lock"></i>
+                            Đã khóa
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+
+                <!-- =================================
+                     THAO TAC KHOA / MO KHOA
+                ================================== -->
+
+                <td style="white-space:nowrap;">
+
+                    {% if x.user.id == request.user.id %}
+
+                        <!-- KHONG TU KHOA MINH -->
+                        <span class="text-xs text-slate-500">
+                            Tài khoản hiện tại
+                        </span>
+
+                    {% elif x.user.is_superuser %}
+
+                        <!-- BAO VE SUPERUSER -->
+                        <span class="text-xs text-slate-500">
+                            Tài khoản quản trị
+                        </span>
+
+                    {% elif is_manager %}
+
+                        <!-- FORM THAY DOI TRANG THAI -->
+                        <form
+                            method="post"
+                            action="{% url 'wms_toggle_user_status' x.pk %}"
+                            style="margin:0;"
+                            onsubmit="return confirm(this.dataset.message);"
+                            data-message="{% if x.trang_thai and x.user.is_active %}Bạn có chắc muốn khóa tài khoản {{ x.user.username }}? Người dùng sẽ không thể tiếp tục truy cập hệ thống.{% else %}Bạn có chắc muốn mở khóa tài khoản {{ x.user.username }}?{% endif %}"
+                        >
+
+                            {% csrf_token %}
+
+                            {% if x.trang_thai and x.user.is_active %}
+
+                                <!-- NUT KHOA -->
+                                <button
+                                    type="submit"
+                                    class="btn2"
+                                    style="
+                                        color:#B42318;
+                                        border-color:#F4C0B7;
+                                    "
+                                >
+                                    <i class="fa-solid fa-lock mr-1"></i>
+                                    Khóa
+                                </button>
+
+                            {% else %}
+
+                                <!-- NUT MO KHOA -->
+                                <button
+                                    type="submit"
+                                    class="btn2"
+                                    style="
+                                        color:#187443;
+                                        border-color:#A9DABD;
+                                    "
+                                >
+                                    <i class="fa-solid fa-lock-open mr-1"></i>
+                                    Mở khóa
+                                </button>
+
+                            {% endif %}
+
+                        </form>
+
+                    {% else %}
+
+                        <span class="text-slate-400">
+                            -
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+                <td
+                    colspan="5"
+                    class="text-center text-slate-500 py-8"
+                >
+                    Chưa có tài khoản nào.
+                </td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+
+<!-- =====================================
+     NUT TRANG QUAN TRI
+====================================== -->
+
+<div class="mt-5">
+
+    <a
+        class="btn2"
+        href="/admin/"
+    >
+        <i class="fa-solid fa-gear mr-1"></i>
+        Mở trang quản trị tài khoản
+    </a>
+
+</div>
+
+{% endblock %}

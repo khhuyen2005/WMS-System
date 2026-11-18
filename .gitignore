@@ -1,0 +1,48 @@
+# Python environments and generated files
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+/build/
+/dist/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+/WMS/local_settings.py
+*.pem
+*.key
+
+# Django runtime data (keep migrations and source static assets)
+*.sqlite3
+*.sqlite3-*
+*.log
+/media/
+/staticfiles/
+
+# Local backups
+/BACKUP_CODE_BEFORE_WMS_V2_*/
+/_BACKUP_TRUOC_NANG_CAP/
+*_backup_*.py
+*.bak
+*.orig
+*~
+
+# Editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

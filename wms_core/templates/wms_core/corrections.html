@@ -1,0 +1,6 @@
+{% extends 'wms_core/base.html' %}{% block content %}
+<h1 class="text-2xl font-bold mb-3">Yêu cầu xử lý phiếu đã xác nhận</h1>
+<p class="text-sm text-slate-600 mb-4">Phiếu đã duyệt không được sửa hoặc xóa trực tiếp. Yêu cầu hủy sẽ được quản lý xem xét; nếu đã xuất dùng lượng hàng trong phiếu nhập, hệ thống từ chối hoàn tác khiến tồn âm.</p>
+<div class="box overflow-x-auto"><table class="table"><tr><th>Mã yêu cầu</th><th>Phiếu gốc</th><th>Người đề nghị</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th></tr>
+{% for x in rows %}<tr><td>#{{ x.pk }}</td><td>{% if x.phieu_nhap %}{{ x.phieu_nhap.ma_phieu_nhap }}{% else %}{{ x.phieu_xuat.ma_phieu_xuat }}{% endif %}</td><td>{{ x.nguoi_yeu_cau.ho_ten }}</td><td>{{ x.ly_do }}</td><td>{{ x.get_trang_thai_display }}</td><td>{% if is_manager and x.trang_thai == 'cho_duyet' %}<form class="inline" action="{% url 'wms_correction_action' x.pk 'approve' %}" method="post">{% csrf_token %}<button class="btn">Duyệt</button></form> <form class="inline" action="{% url 'wms_correction_action' x.pk 'reject' %}" method="post">{% csrf_token %}<button class="btn2">Từ chối</button></form>{% endif %}</td></tr>{% empty %}<tr><td colspan="6">Chưa có yêu cầu</td></tr>{% endfor %}</table></div>
+{% endblock %}

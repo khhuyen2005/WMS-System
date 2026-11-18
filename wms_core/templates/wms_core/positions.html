@@ -1,0 +1,1448 @@
+
+{% extends 'wms_core/base.html' %}
+{% load static %}
+
+{% block title %}
+Khu vực, kệ & vị trí lưu trữ | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<style>
+/* ==========================================
+   GIAO DIEN TRANG VI TRI
+========================================== */
+
+.storage-page {
+    --storage-orange: #E86A20;
+    --storage-dark: #A84313;
+    --storage-border: #F0D8C8;
+
+    display: block !important;
+    width: 100%;
+    min-width: 0;
+}
+
+/* ==========================================
+   TIEU DE
+========================================== */
+
+.storage-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.storage-heading h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #873D16;
+    margin-bottom: 6px;
+    line-height: 1.35;
+}
+
+.storage-heading p {
+    font-size: 12px;
+    color: #8A7466;
+}
+
+.storage-heading-info {
+    flex: 1;
+    min-width: 220px;
+}
+
+.storage-add-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ==========================================
+   BO LOC
+========================================== */
+
+.storage-filters {
+    display: block;
+    width: 100%;
+    background: white;
+    border: 1px solid var(--storage-border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.storage-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.6fr;
+    gap: 14px;
+    align-items: end;
+}
+
+.storage-filter-grid > div {
+    min-width: 0;
+}
+
+.storage-filter-grid label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #794426;
+    margin-bottom: 7px;
+}
+
+.storage-filter-grid select,
+.storage-filter-grid input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #E8CEBD;
+    border-radius: 9px;
+    padding: 11px 12px;
+    background: white;
+    color: #493426;
+    outline: none;
+}
+
+.storage-filter-grid select:focus,
+.storage-filter-grid input:focus {
+    border-color: #E86A20;
+    box-shadow: 0 0 0 2px #FCE6D9;
+}
+
+/* ==========================================
+   CHU THICH TRANG THAI
+========================================== */
+
+.storage-legend {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 18px;
+    color: #725B4B;
+    font-size: 12px;
+}
+
+.storage-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.storage-dot.has-stock {
+    background: #50A56A;
+}
+
+.storage-dot.empty {
+    background: #A6ADB4;
+}
+
+.storage-dot.locked {
+    background: #DA5D5D;
+}
+
+/* ==========================================
+   KHU VUC SO DO
+========================================== */
+
+.storage-content {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    background: white;
+    border: 1px solid var(--storage-border);
+    border-radius: 16px;
+    padding: 20px;
+    min-height: 420px;
+}
+
+.storage-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid #F4E6DC;
+}
+
+.storage-section-title h2 {
+    color: #914014;
+    font-weight: 800;
+    font-size: 17px;
+}
+
+.storage-count {
+    font-size: 12px;
+    color: #987A67;
+}
+
+/* ==========================================
+   LUOI KE
+========================================== */
+
+.rack-grid {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(230px, 1fr)
+    );
+    gap: 24px;
+    align-items: start;
+}
+
+.rack-card {
+    min-width: 0;
+    background: #FFFCF9;
+    border: 1px solid #F0DBCE;
+    border-radius: 15px;
+    padding: 15px 12px 18px;
+    transition: transform .2s, box-shadow .2s;
+}
+
+.rack-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 22px rgba(155,74,26,.10);
+}
+
+.rack-heading {
+    background: linear-gradient(
+        135deg,
+        #F58A3E,
+        #D95C1C
+    );
+    color: white;
+    padding: 11px 8px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 0 #B84E1E;
+}
+
+.rack-heading strong {
+    display: block;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.rack-heading small {
+    display: block;
+    font-size: 10px;
+    opacity: .9;
+    margin-top: 2px;
+}
+
+/* ==========================================
+   KHUNG KE
+========================================== */
+
+.rack-frame {
+    position: relative;
+    padding: 1px 10px 7px;
+    border-left: 8px solid #889198;
+    border-right: 8px solid #889198;
+    border-radius: 3px;
+    background: #FFF7EE;
+    box-shadow:
+        inset 4px 0 #C7CCD0,
+        inset -4px 0 #C7CCD0;
+}
+
+.rack-floor {
+    margin-bottom: 9px;
+}
+
+.rack-floor-label {
+    display: inline-block;
+    color: #80543A;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.rack-position {
+    display: block;
+    width: 100%;
+    border: 1px solid #DFE3E6;
+    border-radius: 9px;
+    padding: 12px 7px;
+    background: #F3F4F5;
+    color: #5B6470;
+    text-align: center;
+    cursor: pointer;
+    transition: .2s;
+    min-height: 67px;
+}
+
+.rack-position:hover {
+    filter: brightness(.97);
+    transform: scale(1.025);
+}
+
+.rack-position.stocked {
+    background: #EAF7EC;
+    color: #226D3B;
+    border-color: #A6DCB0;
+}
+
+.rack-position.is-locked {
+    background: #FCEAEA;
+    color: #B43B3B;
+    border-color: #F0B6B6;
+}
+
+.rack-position strong {
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.rack-position small {
+    display: block;
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+.rack-shelf {
+    height: 10px;
+    margin: 3px -12px 13px;
+    background: linear-gradient(
+        180deg,
+        #F8B46F,
+        #D78B40
+    );
+    border-bottom: 3px solid #A96A32;
+    border-radius: 3px;
+}
+
+.rack-bottom {
+    height: 8px;
+    background: #79838A;
+    margin: 0 -15px -7px;
+    border-radius: 3px;
+}
+
+.storage-empty-message {
+    text-align: center;
+    padding: 65px 15px;
+    color: #987B69;
+    font-size: 13px;
+}
+
+/* ==========================================
+   POPUP CHI TIET VI TRI
+========================================== */
+
+.position-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(31,23,17,.50);
+    z-index: 100;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.position-modal-overlay.active {
+    display: flex;
+}
+
+.position-modal {
+    width: 100%;
+    max-width: 530px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 70px rgba(0,0,0,.20);
+}
+
+.position-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FFF3EA;
+    border-bottom: 1px solid #F0D8C8;
+    padding: 17px 20px;
+}
+
+.position-modal-header h3 {
+    font-size: 17px;
+    font-weight: 800;
+    color: #A84313;
+}
+
+.position-modal-close {
+    border: none;
+    background: transparent;
+    color: #81533D;
+    font-size: 23px;
+    cursor: pointer;
+}
+
+.position-modal-body {
+    padding: 20px;
+}
+
+.position-info {
+    display: grid;
+    grid-template-columns: 120px minmax(0,1fr);
+    gap: 12px;
+    font-size: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #F5E8DE;
+    margin-bottom: 15px;
+}
+
+.position-info span {
+    color: #907C70;
+}
+
+.position-info strong {
+    color: #523522;
+    overflow-wrap: anywhere;
+}
+
+.position-stock-title {
+    font-weight: 800;
+    color: #92451C;
+    margin-bottom: 12px;
+}
+
+.position-stock-list {
+    display: grid;
+    gap: 9px;
+}
+
+.position-stock-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px;
+    background: #FFF9F5;
+    border: 1px solid #F2E3D7;
+    border-radius: 9px;
+    font-size: 12px;
+}
+
+.position-stock-item strong {
+    color: #86421B;
+    white-space: nowrap;
+}
+
+/* Thong tin chi tiet bien the hang hoa */
+.position-stock-item > div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
+.position-stock-item > strong {
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
+.position-product-attributes {
+    margin-top: 5px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #8A7466;
+    overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media (max-width: 900px) {
+    .storage-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .storage-search-field {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 700px) {
+    .storage-heading {
+        align-items: flex-start;
+    }
+
+    .storage-heading h1 {
+        font-size: 20px;
+    }
+
+    .storage-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .storage-search-field {
+        grid-column: auto;
+    }
+
+    .rack-grid {
+        grid-template-columns: repeat(
+            auto-fill,
+            minmax(200px, 1fr)
+        );
+        gap: 15px;
+    }
+
+    .storage-content {
+        padding: 14px;
+    }
+}
+</style>
+
+
+<!-- ==========================================
+     NOI DUNG CHINH
+========================================== -->
+
+<div class="storage-page">
+
+    <!-- TIEU DE VA NUT THEM -->
+    <div class="storage-heading">
+
+        <div class="storage-heading-info">
+
+            <h1>
+                <i class="fa-solid fa-warehouse mr-2"></i>
+                Khu vực, kệ & vị trí lưu trữ
+            </h1>
+
+
+
+        </div>
+
+        {% if is_manager %}
+
+        <button
+            type="button"
+            class="btn storage-add-btn"
+            id="position-create-open"
+        >
+            <i class="fa-solid fa-plus mr-1"></i>
+            Thêm khu vực / kệ / vị trí
+        </button>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- =====================================
+         BO LOC
+    ====================================== -->
+
+    <div class="storage-filters">
+
+        <div class="storage-filter-grid">
+
+            <!-- LOC KHO -->
+            <div>
+                <label for="filter-warehouse">
+                    Kho
+                </label>
+
+                <select id="filter-warehouse">
+                    <option value="">
+                        Tất cả kho
+                    </option>
+                </select>
+            </div>
+
+
+            <!-- LOC KHU VUC -->
+            <div>
+                <label for="filter-area">
+                    Khu vực
+                </label>
+
+                <select id="filter-area">
+                    <option value="">
+                        Tất cả khu vực
+                    </option>
+                </select>
+            </div>
+
+
+            <!-- TIM KIEM -->
+            <div class="storage-search-field">
+
+                <label for="filter-search">
+                    Tìm kiếm vị trí hoặc hàng hóa
+                </label>
+
+                <input
+                    id="filter-search"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="Nhập mã vị trí, tên kệ, mã hàng..."
+                >
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+
+    <!-- =====================================
+         SO DO VI TRI
+    ====================================== -->
+
+    <div class="storage-content">
+
+        <div class="storage-section-title">
+
+            <h2>
+                <i class="fa-solid fa-layer-group mr-2"></i>
+                Sơ đồ vị trí lưu trữ
+            </h2>
+
+            <span
+                id="result-count"
+                class="storage-count"
+            >
+                Đang tải dữ liệu...
+            </span>
+
+        </div>
+
+
+        <!-- NOI HIEN THI CAC KE -->
+        <div
+            id="rack-grid"
+            class="rack-grid"
+        ></div>
+
+
+        <!-- KHONG CO DU LIEU -->
+        <div
+            id="empty-message"
+            class="storage-empty-message"
+            style="display:none;"
+        >
+
+            <i class="fa-regular fa-folder-open text-3xl mb-3"></i>
+
+            <p>
+                Không tìm thấy vị trí phù hợp.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ==========================================
+     POPUP XEM CHI TIET VI TRI
+========================================== -->
+
+<div
+    id="position-overlay"
+    class="position-modal-overlay"
+    role="presentation"
+>
+
+    <div
+        class="position-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+    >
+
+        <div class="position-modal-header">
+
+            <h3 id="modal-title">
+                Chi tiết vị trí
+            </h3>
+
+            <button
+                type="button"
+                class="position-modal-close"
+                id="close-modal"
+                aria-label="Đóng cửa sổ"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div class="position-modal-body">
+
+            <div id="modal-info"></div>
+
+            <h4 class="position-stock-title">
+
+                <i class="fa-solid fa-boxes-stacked mr-1"></i>
+                Hàng hóa tại vị trí
+
+            </h4>
+
+            <div
+                id="modal-stock"
+                class="position-stock-list"
+            ></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ==========================================
+     POPUP THEM KHU VUC / KE / VI TRI
+========================================== -->
+
+{% if is_manager %}
+    {% include 'wms_core/position_create_modal.html' %}
+{% endif %}
+
+
+<!-- ==========================================
+     DU LIEU VI TRI TU DJANGO
+========================================== -->
+
+{{ positions_payload|json_script:"positions-json" }}
+
+
+<!-- ==========================================
+     JAVASCRIPT SO DO KE
+========================================== -->
+
+<script>
+(function () {
+    'use strict';
+
+    const data = JSON.parse(
+        document.getElementById('positions-json').textContent
+    );
+
+    const warehouseSelect = document.getElementById(
+        'filter-warehouse'
+    );
+
+    const areaSelect = document.getElementById(
+        'filter-area'
+    );
+
+    const searchInput = document.getElementById(
+        'filter-search'
+    );
+
+    const rackGrid = document.getElementById(
+        'rack-grid'
+    );
+
+    const resultCount = document.getElementById(
+        'result-count'
+    );
+
+    const emptyMessage = document.getElementById(
+        'empty-message'
+    );
+
+    const overlay = document.getElementById(
+        'position-overlay'
+    );
+
+    const modalInfo = document.getElementById(
+        'modal-info'
+    );
+
+    const modalStock = document.getElementById(
+        'modal-stock'
+    );
+
+    const modalTitle = document.getElementById(
+        'modal-title'
+    );
+
+    let lastTrigger = null;
+
+
+    // =====================================
+    // HAM XU LY CHUOI
+    // =====================================
+
+    function safeText(value) {
+        return String(
+            value == null ? '' : value
+        );
+    }
+
+
+    function normalize(value) {
+        return safeText(value)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .toLowerCase()
+            .trim();
+    }
+
+
+    function makeElement(tag, className, text) {
+
+        const element = document.createElement(tag);
+
+        if (className) {
+            element.className = className;
+        }
+
+        if (text !== undefined) {
+            element.textContent = safeText(text);
+        }
+
+        return element;
+    }
+
+
+    // =====================================
+    // HAM LOC DU LIEU
+    // =====================================
+
+    function uniqueItems(items) {
+
+        return [
+            ...new Set(items.filter(Boolean))
+        ].sort(
+            (a, b) => a.localeCompare(b, 'vi')
+        );
+
+    }
+
+
+    function fillSelect(select, items, allLabel) {
+
+        const oldValue = select.value;
+
+        select.replaceChildren(
+            new Option(allLabel, '')
+        );
+
+        items.forEach(value => {
+            select.add(
+                new Option(value, value)
+            );
+        });
+
+        if (items.includes(oldValue)) {
+            select.value = oldValue;
+        }
+
+    }
+
+
+    function updateAreas() {
+
+        const warehouse = warehouseSelect.value;
+
+        const areas = uniqueItems(
+            data
+                .filter(item =>
+                    !warehouse ||
+                    item.warehouse === warehouse
+                )
+                .map(item => item.area)
+        );
+
+        fillSelect(
+            areaSelect,
+            areas,
+            'Tất cả khu vực'
+        );
+
+    }
+
+
+    function matchesSearch(item, keyword) {
+
+        if (!keyword) {
+            return true;
+        }
+
+        const products = (item.stock || [])
+            .map(product =>
+                safeText(product.sku) + ' ' +
+                safeText(product.name)
+            )
+            .join(' ');
+
+        const combined = [
+            item.code,
+            item.warehouse,
+            item.area,
+            item.rack,
+            item.level,
+            products
+        ].join(' ');
+
+        return normalize(combined).includes(keyword);
+
+    }
+
+
+    function getFilteredPositions() {
+
+        const warehouse = warehouseSelect.value;
+        const area = areaSelect.value;
+        const keyword = normalize(searchInput.value);
+
+        return data.filter(item =>
+
+            (!warehouse || item.warehouse === warehouse)
+
+            &&
+
+            (!area || item.area === area)
+
+            &&
+
+            matchesSearch(item, keyword)
+
+        );
+
+    }
+
+
+    // =====================================
+    // NHOM VI TRI THEO KE
+    // =====================================
+
+    function groupByRack(items) {
+
+        const groups = new Map();
+
+        items.forEach(item => {
+
+            const key = [
+                item.warehouse,
+                item.area,
+                item.rack
+            ].join('||');
+
+            if (!groups.has(key)) {
+
+                groups.set(key, {
+                    warehouse: item.warehouse,
+                    area: item.area,
+                    rack: item.rack,
+                    positions: []
+                });
+
+            }
+
+            groups.get(key).positions.push(item);
+
+        });
+
+        return [...groups.values()].sort(
+            (a, b) =>
+
+                (
+                    a.warehouse +
+                    a.area +
+                    a.rack
+                ).localeCompare(
+                    b.warehouse + b.area + b.rack,
+                    'vi',
+                    { numeric: true }
+                )
+
+        );
+
+    }
+
+
+    // =====================================
+    // TRANG THAI VI TRI
+    // =====================================
+
+    function statusLabel(item) {
+
+        if (item.locked) {
+            return 'Đang khóa kiểm kê';
+        }
+
+        if (item.has_stock) {
+            return 'Đang có hàng';
+        }
+
+        return 'Trống';
+
+    }
+
+
+    // =====================================
+    // MO CHI TIET VI TRI
+    // =====================================
+
+
+function openPosition(item, button) {
+
+    lastTrigger = button;
+
+    modalTitle.textContent = item.code;
+
+    modalInfo.replaceChildren();
+
+    const details = [
+        ['Mã vị trí', item.code],
+        ['Kho', item.warehouse],
+        ['Khu vực', item.area],
+        ['Kệ', item.rack],
+        ['Tầng', item.level],
+        ['Trạng thái', statusLabel(item)]
+    ];
+
+    details.forEach(([label, value]) => {
+
+        const row = makeElement(
+            'div',
+            'position-info'
+        );
+
+        row.appendChild(
+            makeElement('span', '', label)
+        );
+
+        row.appendChild(
+            makeElement(
+                'strong',
+                '',
+                value || '—'
+            )
+        );
+
+        modalInfo.appendChild(row);
+
+    });
+
+    // =====================================
+    // DANH SACH HANG HOA TAI VI TRI
+    // =====================================
+
+    modalStock.replaceChildren();
+
+    const stocks = (item.stock || []).filter(
+        product => Number(product.quantity) > 0
+    );
+
+    if (!stocks.length) {
+
+        modalStock.appendChild(
+            makeElement(
+                'p',
+                'text-sm text-slate-500',
+                'Chưa có hàng tồn tại vị trí này.'
+            )
+        );
+
+    } else {
+
+        stocks.forEach(product => {
+
+            const row = makeElement(
+                'div',
+                'position-stock-item'
+            );
+
+            const name = makeElement('div');
+
+            // MA HANG
+            name.appendChild(
+                makeElement(
+                    'div',
+                    'font-bold',
+                    product.sku
+                )
+            );
+
+            // TEN HANG
+            name.appendChild(
+                makeElement(
+                    'div',
+                    'text-slate-600 mt-1',
+                    product.name
+                )
+            );
+
+            // =====================================
+            // THONG TIN MAU SAC, SIZE, MAU MA
+            // =====================================
+
+            const attributes = [];
+
+            if (safeText(product.mau_sac).trim()) {
+                attributes.push(
+                    'Màu: ' + product.mau_sac
+                );
+            }
+
+            if (safeText(product.kich_co).trim()) {
+                attributes.push(
+                    'Size: ' + product.kich_co
+                );
+            }
+
+            if (safeText(product.mau_ma).trim()) {
+                attributes.push(
+                    'Mẫu mã: ' + product.mau_ma
+                );
+            }
+
+            // Chi hien thong tin co du lieu
+            if (attributes.length > 0) {
+
+                name.appendChild(
+                    makeElement(
+                        'div',
+                        'position-product-attributes',
+                        attributes.join(' · ')
+                    )
+                );
+
+            }
+
+            row.appendChild(name);
+
+            // =====================================
+            // SO LUONG TON VA DON VI TINH
+            // =====================================
+
+            const quantity = Number(
+                product.quantity
+            ).toLocaleString('vi-VN', {
+                maximumFractionDigits: 2
+            });
+
+            row.appendChild(
+                makeElement(
+                    'strong',
+                    '',
+                    quantity + ' ' +
+                    safeText(product.unit)
+                )
+            );
+
+            modalStock.appendChild(row);
+
+        });
+
+    }
+
+    overlay.classList.add('active');
+
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById(
+        'close-modal'
+    ).focus();
+
+}
+
+    // =====================================
+    // DONG CHI TIET VI TRI
+    // =====================================
+
+    function closePosition() {
+
+        overlay.classList.remove('active');
+
+        document.body.style.overflow = '';
+
+        if (lastTrigger) {
+            lastTrigger.focus();
+        }
+
+    }
+
+
+    // =====================================
+    // TAO HINH ANH MOT KE
+    // =====================================
+
+    function buildRack(group) {
+
+        const card = makeElement(
+            'div',
+            'rack-card'
+        );
+
+        // TEN KE
+        const heading = makeElement(
+            'div',
+            'rack-heading'
+        );
+
+        heading.appendChild(
+            makeElement(
+                'strong',
+                '',
+                group.rack
+            )
+        );
+
+        heading.appendChild(
+            makeElement(
+                'small',
+                '',
+                group.area
+            )
+        );
+
+        card.appendChild(heading);
+
+
+        // KHUNG KE
+        const frame = makeElement(
+            'div',
+            'rack-frame'
+        );
+
+
+        // SAP XEP TANG TU CAO XUONG THAP
+        const sorted = [
+            ...group.positions
+        ].sort(
+            (a, b) =>
+
+                Number(b.level_number || 0)
+                -
+                Number(a.level_number || 0)
+
+                ||
+
+                a.code.localeCompare(
+                    b.code,
+                    'vi',
+                    { numeric: true }
+                )
+        );
+
+
+        // TAO TUNG VI TRI TRONG KE
+        sorted.forEach(item => {
+
+            const floor = makeElement(
+                'div',
+                'rack-floor'
+            );
+
+            floor.appendChild(
+                makeElement(
+                    'span',
+                    'rack-floor-label',
+                    item.level || 'Vị trí'
+                )
+            );
+
+            const button = makeElement(
+                'button',
+                'rack-position'
+            );
+
+            button.type = 'button';
+
+            if (item.locked) {
+
+                button.classList.add(
+                    'is-locked'
+                );
+
+            } else if (item.has_stock) {
+
+                button.classList.add(
+                    'stocked'
+                );
+
+            }
+
+            button.appendChild(
+                makeElement(
+                    'strong',
+                    '',
+                    item.code
+                )
+            );
+
+            button.appendChild(
+                makeElement(
+                    'small',
+                    '',
+                    statusLabel(item)
+                )
+            );
+
+            button.addEventListener(
+                'click',
+                () => openPosition(item, button)
+            );
+
+            floor.appendChild(button);
+
+            floor.appendChild(
+                makeElement(
+                    'div',
+                    'rack-shelf'
+                )
+            );
+
+            frame.appendChild(floor);
+
+        });
+
+
+        // CHAN KE
+        frame.appendChild(
+            makeElement(
+                'div',
+                'rack-bottom'
+            )
+        );
+
+        card.appendChild(frame);
+
+        return card;
+
+    }
+
+
+    // =====================================
+    // HIEN THI SO DO KE
+    // =====================================
+
+    function render() {
+
+        const filtered = getFilteredPositions();
+
+        const racks = groupByRack(filtered);
+
+        rackGrid.replaceChildren();
+
+        racks.forEach(group => {
+
+            rackGrid.appendChild(
+                buildRack(group)
+            );
+
+        });
+
+        resultCount.textContent =
+            filtered.length + ' vị trí · ' +
+            racks.length + ' kệ';
+
+        emptyMessage.style.display =
+            filtered.length
+                ? 'none'
+                : 'block';
+
+    }
+
+
+    // =====================================
+    // KHOI TAO DU LIEU
+    // =====================================
+
+    fillSelect(
+        warehouseSelect,
+        uniqueItems(
+            data.map(item => item.warehouse)
+        ),
+        'Tất cả kho'
+    );
+
+    updateAreas();
+
+    render();
+
+
+    // =====================================
+    // SU KIEN BO LOC
+    // =====================================
+
+    warehouseSelect.addEventListener(
+        'change',
+        () => {
+
+            areaSelect.value = '';
+
+            updateAreas();
+
+            render();
+
+        }
+    );
+
+    areaSelect.addEventListener(
+        'change',
+        render
+    );
+
+    searchInput.addEventListener(
+        'input',
+        render
+    );
+
+
+    // =====================================
+    // SU KIEN DONG POPUP
+    // =====================================
+
+    document.getElementById(
+        'close-modal'
+    ).addEventListener(
+        'click',
+        closePosition
+    );
+
+    overlay.addEventListener(
+        'click',
+        event => {
+
+            if (event.target === overlay) {
+                closePosition();
+            }
+
+        }
+    );
+
+    document.addEventListener(
+        'keydown',
+        event => {
+
+            if (
+                event.key === 'Escape'
+                &&
+                overlay.classList.contains('active')
+            ) {
+                closePosition();
+            }
+
+        }
+    );
+
+})();
+</script>
+
+{% endblock %}

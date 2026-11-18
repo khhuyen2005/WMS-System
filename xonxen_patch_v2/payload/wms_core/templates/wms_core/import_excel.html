@@ -1,0 +1,6 @@
+{% extends 'wms_core/base.html' %}{% block content %}
+<h1 class="text-2xl font-bold mb-4">Nhập dữ liệu Excel XONXEN</h1>
+<div class="box p-6 max-w-3xl"><p class="mb-4">Chọn Excel gồm 3 sheet <strong>NguyenVatLieu</strong>, <strong>ThanhPham</strong>, <strong>NhaCungCap</strong>. Mã đã có được giữ nguyên, không cộng tồn lần nữa. Chỉ SKU mới được tạo tồn đầu kỳ (ở vị trí mẫu đầu tiên của kho) và ngưỡng demo 20%.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}<label>File Excel (.xlsx)</label><input name="excel" type="file" accept=".xlsx" required class="field mb-4"><button type="submit" class="btn">Kiểm tra và nhập dữ liệu mới</button></form>
+{% if summary %}<div class="mt-5 p-4 bg-green-50 rounded"><strong>Đã xử lý thành công</strong><p>Hàng hóa mới: {{ summary.new_goods }} · Mã đã có: {{ summary.existing_goods }} · Đối tác mới: {{ summary.new_partners }} · Dòng tồn đầu kỳ mới: {{ summary.opening_lines }}</p></div>{% endif %}</div>
+{% endblock %}

@@ -1,0 +1,2033 @@
+
+{% extends 'wms_core/base.html' %}
+{% load l10n %}
+
+{% block title %}
+{% if edit_mode %}Sửa{% else %}Tạo{% endif %}
+phiếu {% if direction == 'nhap' %}nhập{% else %}xuất{% endif %} kho | XONXEN
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-orange-900">
+        {% if edit_mode %}Sửa phiếu{% else %}Tạo phiếu{% endif %}
+        {% if direction == 'nhap' %}nhập{% else %}xuất{% endif %}
+
+        {% if selected_kind == 'NVL' %}
+            nguyên vật liệu
+        {% elif selected_kind == 'TP' %}
+            thành phẩm
+        {% else %}
+            kho
+        {% endif %}
+    </h1>
+
+    {% if edit_mode %}
+    <p class="text-sm text-slate-500 mt-2">
+        Bạn đang sửa phiếu nháp.
+        Mã phiếu và kho được giữ nguyên;
+        tồn kho chưa thay đổi.
+    </p>
+    {% endif %}
+</div>
+
+<form
+    method="post"
+    class="box p-6"
+    id="document-form"
+    action="{% if edit_mode %}{% url 'wms_edit_document' direction edit_doc.pk %}{% else %}{% url 'wms_new_document' direction %}{% if selected_kind %}?kind={{ selected_kind }}{% endif %}{% endif %}"
+>
+    {% csrf_token %}
+
+    <h2 class="font-bold text-lg mb-4">
+        1. Thông tin phiếu
+    </h2>
+
+    <!-- MA PHIEU -->
+    <div class="mb-5">
+        <label for="document-code">
+            Mã phiếu (tự động)
+        </label>
+
+        <input
+            id="document-code"
+            type="text"
+            class="field"
+            value="{{ displayed_code|default:'' }}"
+            readonly
+            style="background:#FFF4EB;cursor:not-allowed;"
+        >
+
+        {% if not edit_mode %}
+        <input
+            type="hidden"
+            name="code_token"
+            value="{{ code_token|default:'' }}"
+        >
+        {% endif %}
+    </div>
+
+    <!-- KHO VA DOI TAC -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+        <div
+            id="warehouse-field"
+            {% if warehouses|length == 1 %}
+                style="display:none;"
+            {% endif %}
+        >
+            <label for="warehouse">Kho *</label>
+
+            <select
+                class="field"
+                name="kho"
+                id="warehouse"
+                required
+            >
+                <option value="">-- Chọn kho --</option>
+
+                {% for x in warehouses %}
+                <option
+                    value="{{ x.pk }}"
+                    data-kind="{{ x.loai_kho }}"
+                    {% if selected_warehouse_id == x.pk|stringformat:'s' or warehouses|length == 1 %}
+                        selected
+                    {% endif %}
+                >
+                    {{ x.ten_kho }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="partner-field">
+            <label id="partner-label" for="partner">
+                Đối tác *
+            </label>
+
+            <select
+                class="field"
+                id="partner"
+                name="doi_tac"
+                required
+            >
+                <option value="">-- Chọn đối tác --</option>
+
+                {% for x in partners %}
+                <option
+                    value="{{ x.pk }}"
+                    data-type="{{ x.loai_doi_tac }}"
+                    {% if selected_partner_id == x.pk|stringformat:'s' %}
+                        selected
+                    {% endif %}
+                >
+                    {{ x.ten_doi_tac }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <p
+                class="text-xs text-slate-500 mt-1"
+                id="partner-help"
+            ></p>
+        </div>
+    </div>
+
+    <!-- DANH SACH HANG -->
+    <div class="border-t border-orange-100 pt-5">
+
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <h2 class="font-bold text-lg">
+                2. Danh sách hàng hóa
+            </h2>
+
+            <button
+                type="button"
+                class="btn2"
+                onclick="addLine()"
+            >
+                <i class="fa-solid fa-plus mr-1"></i>
+                Thêm dòng
+            </button>
+        </div>
+
+        <div id="lines" class="space-y-3"></div>
+
+        <p
+            id="document-lock-message"
+            class="hidden mt-3 text-sm text-red-700"
+            role="alert"
+        ></p>
+    </div>
+
+    <!-- TONG TIEN -->
+    <div class="border-t border-orange-100 mt-6 pt-5">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+            <h2 class="font-bold text-lg text-orange-900">
+                3. Tổng tiền
+            </h2>
+
+            <div class="text-right">
+                <div
+                    id="grand-total"
+                    class="text-2xl font-extrabold text-orange-700"
+                >
+                    0 đ
+                </div>
+
+                <p class="text-xs text-slate-500 mt-1">
+                    Đơn vị: VNĐ
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- GHI CHU -->
+    <div class="mt-6">
+        <label for="ghi-chu">Ghi chú</label>
+
+        <textarea
+            class="field"
+            id="ghi-chu"
+            name="ghi_chu"
+            rows="2"
+            placeholder="Thông tin bổ sung..."
+        >{{ initial_note|default:'' }}</textarea>
+    </div>
+
+    <!-- NUT THAO TAC -->
+    <div class="flex flex-wrap gap-3 mt-6">
+        <button
+            class="btn"
+            type="submit"
+            id="save-button"
+        >
+            <i class="fa-solid fa-floppy-disk mr-1"></i>
+
+            {% if edit_mode %}
+                Lưu thay đổi
+            {% else %}
+                Lưu phiếu nháp
+            {% endif %}
+        </button>
+
+        <a
+            class="btn2"
+            href="{% if edit_mode %}{% url 'wms_document_detail' direction edit_doc.pk %}{% else %}{% url 'wms_documents' direction %}{% if selected_kind %}?kind={{ selected_kind }}{% endif %}{% endif %}"
+        >
+            {% if edit_mode %}
+                Hủy sửa
+            {% else %}
+                Quay lại danh sách
+            {% endif %}
+        </a>
+    </div>
+</form>
+
+
+<!-- ===================================== -->
+<!-- MAU MOT DONG HANG HOA -->
+<!-- ===================================== -->
+
+<template id="line-template">
+
+    <div class="line border border-orange-100 rounded-lg p-4 bg-orange-50/30">
+
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+
+            <!-- HANG HOA -->
+            <div class="md:col-span-2">
+                <label>Hàng hóa *</label>
+
+                <select
+                    class="field good"
+                    name="hang_hoa"
+                    required
+                >
+                    <option value="">
+                        -- Chọn hàng hóa --
+                    </option>
+
+                    {% for x in goods %}
+                    <option
+                        value="{{ x.pk }}"
+                        data-kind="{{ x.nhom_hang.loai_hang }}"
+                        data-ke="{{ x.ke_mac_dinh_id|default_if_none:'' }}"
+                        data-rack-name="{{ x.ke_mac_dinh.ten_ke|default_if_none:'' }}"
+                        data-price="{% if x.don_gia != None %}{{ x.don_gia|unlocalize }}{% endif %}"
+                    >
+                        {{ x.ma_hang }} - {{ x.ten_hang }}
+
+                        {% if x.mau_sac %}
+                            - {{ x.mau_sac }}
+                        {% endif %}
+
+                        {% if x.kich_co %}
+                            - Size {{ x.kich_co }}
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- KE -->
+            <div class="md:col-span-2">
+
+                {% if direction == 'nhap' %}
+
+                <label>
+                    Kệ mặc định (tự động)
+                </label>
+
+                <input
+                    class="field rack-display"
+                    type="text"
+                    readonly
+                    placeholder="Chọn hàng hóa để hiện kệ"
+                    style="background:#FFF4EB;cursor:not-allowed;"
+                >
+
+                {% else %}
+
+                <label>
+                    Kệ đang có hàng *
+                </label>
+
+                <select
+                    class="field rack-select"
+                    required
+                >
+                    <option value="">
+                        -- Chọn kệ --
+                    </option>
+                </select>
+
+                {% endif %}
+            </div>
+
+            <!-- TANG / VI TRI -->
+            <div>
+                <label>Tầng *</label>
+
+                <select
+                    class="field pos"
+                    name="vi_tri"
+                    required
+                >
+                    <option value="">
+                        -- Chọn vị trí --
+                    </option>
+
+                    {% for x in locations %}
+                    <option
+                        value="{{ x.pk }}"
+                        data-kho="{{ x.ke.khu_vuc.kho_id }}"
+                        data-ke="{{ x.ke_id }}"
+                    >
+                        {{ x.ten_vi_tri }} ({{ x.ma_vi_tri }})
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <p
+                    class="position-lock-hint text-xs text-slate-500 mt-1 hidden"
+                    aria-live="polite"
+                ></p>
+            </div>
+
+            <!-- TON TAI VI TRI -->
+            {% if direction == 'xuat' %}
+            <div>
+                <label>Tồn tại vị trí</label>
+
+                <input
+                    type="text"
+                    class="field available-stock"
+                    value="0"
+                    readonly
+                    style="background:#FFF4EB;cursor:not-allowed;"
+                >
+            </div>
+            {% endif %}
+
+            <!-- SO LUONG -->
+            <div>
+                <label>Số lượng *</label>
+
+                <input
+                    class="field quantity"
+                    name="so_luong"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0"
+                    required
+                >
+            </div>
+
+            <!-- DON GIA -->
+            <div>
+                <label>Đơn giá (VNĐ) *</label>
+
+                <input
+                    class="field unit-price"
+                    name="don_gia"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    readonly
+                    required
+                    style="background:#FFF4EB;cursor:not-allowed;"
+                >
+            </div>
+
+            <!-- XOA DONG -->
+            <div class="flex items-end">
+                <button
+                    type="button"
+                    class="btn2"
+                    onclick="removeLine(this)"
+                >
+                    <i class="fa-solid fa-trash-can mr-1"></i>
+                    Xóa dòng
+                </button>
+            </div>
+        </div>
+
+        <!-- THANH TIEN -->
+        <div class="flex justify-end items-center gap-3 mt-3 pt-3 border-t border-orange-100">
+            <span class="text-sm text-slate-500">
+                Thành tiền:
+            </span>
+
+            <strong class="line-total text-base text-orange-800">
+                0 đ
+            </strong>
+        </div>
+
+        {% if direction == 'xuat' %}
+        <p
+            class="stock-warning text-sm text-red-600 mt-2"
+            aria-live="polite"
+        ></p>
+        {% endif %}
+    </div>
+</template>
+
+
+<!-- ===================================== -->
+<!-- DU LIEU TU VIEWS.PY -->
+<!-- ===================================== -->
+
+{{ stock_rows|json_script:'stock-data' }}
+
+{{ locked_stock_positions_by_warehouse|json_script:'locked-stock-positions-by-warehouse' }}
+
+{{ initial_lines|json_script:'initial-document-lines' }}
+
+
+<script>
+(function () {
+    'use strict';
+
+    const IS_RECEIPT =
+        {% if direction == 'nhap' %}true{% else %}false{% endif %};
+
+    const IS_EDIT =
+        {% if edit_mode %}true{% else %}false{% endif %};
+
+    const warehouse =
+        document.getElementById('warehouse');
+
+    const partner =
+        document.getElementById('partner');
+
+    const partnerLabel =
+        document.getElementById('partner-label');
+
+    const partnerHelp =
+        document.getElementById('partner-help');
+
+    const lines =
+        document.getElementById('lines');
+
+    const lineTemplate =
+        document.getElementById('line-template');
+
+    const form =
+        document.getElementById('document-form');
+
+    const grandTotal =
+        document.getElementById('grand-total');
+
+    const saveButton =
+        document.getElementById('save-button');
+
+    const lockMessage =
+        document.getElementById('document-lock-message');
+
+    const lockStatusUrl =
+        "{% url 'wms_document_lock_status' %}";
+
+
+    // =====================================
+    // DOC DU LIEU JSON
+    // =====================================
+
+    function readJson(id, fallback) {
+        const el = document.getElementById(id);
+
+        if (!el) {
+            return fallback;
+        }
+
+        try {
+            return JSON.parse(el.textContent);
+        } catch (error) {
+            return fallback;
+        }
+    }
+
+    const stockRows =
+        readJson('stock-data', []) || [];
+
+    const lockedPositionsByWarehouse =
+        readJson(
+            'locked-stock-positions-by-warehouse',
+            {}
+        ) || {};
+
+    const initialDocumentLines =
+        readJson('initial-document-lines', []) || [];
+
+    const moneyFormatter = new Intl.NumberFormat('vi-VN', {
+        maximumFractionDigits: 2
+    });
+
+
+    // =====================================
+    // TIEN VA SO THAP PHAN
+    // =====================================
+
+    function displayNumber(value) {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ''
+        ) {
+            return '';
+        }
+
+        const number = Number(
+            String(value).trim().replace(',', '.')
+        );
+
+        return Number.isFinite(number)
+            ? String(number)
+            : '';
+    }
+
+    function formatMoney(amount) {
+        return moneyFormatter.format(amount) + ' đ';
+    }
+
+
+    // =====================================
+    // KHO VA HANG HOA DANG CHON
+    // =====================================
+
+    function warehouseKind() {
+        const selected = warehouse.selectedOptions[0];
+
+        return selected
+            ? (selected.dataset.kind || '')
+            : '';
+    }
+
+    function selectedGood(line) {
+        const selected = line
+            .querySelector('.good')
+            .selectedOptions[0];
+
+        return selected && selected.value
+            ? selected
+            : null;
+    }
+
+
+    // ============================================
+    // TRANG THAI KHOA THEO SAN PHAM + VI TRI
+    // ============================================
+
+    function currentLockState() {
+        const data =
+            lockedPositionsByWarehouse[
+                String(warehouse.value)
+            ] || {};
+
+        return {
+            full: data.full === true,
+
+            pairs: new Set(
+                (data.pairs || []).map(String)
+            ),
+
+            legacyGoods: new Set(
+                (data.legacy_goods || []).map(String)
+            ),
+
+            positions: new Set(
+                (data.positions || []).map(String)
+            )
+        };
+    }
+
+
+    // Khoa toan bo kho hoac khoa ma hang cu
+    function isGoodLocked(goodId, state) {
+        if (!goodId) {
+            return false;
+        }
+
+        return (
+            state.full ||
+            state.legacyGoods.has(String(goodId))
+        );
+    }
+
+
+    // Kiem tra dung hang hoa tai dung vi tri
+    function isPositionLocked(goodId, posId, state) {
+        if (!goodId || !posId) {
+            return false;
+        }
+
+        return (
+            state.full ||
+
+            state.legacyGoods.has(
+                String(goodId)
+            ) ||
+
+            state.positions.has(
+                String(posId)
+            ) ||
+
+            state.pairs.has(
+                String(goodId) + ':' + String(posId)
+            )
+        );
+    }
+
+
+    function showDocumentLockMessage(message) {
+        lockMessage.textContent = message || '';
+
+        lockMessage.classList.toggle(
+            'hidden',
+            !message
+        );
+    }
+
+
+    // =====================================
+    // DOI TAC THEO NGHIEP VU
+    // =====================================
+
+    function expectedPartnerType() {
+        const kind = warehouseKind();
+
+        if (IS_RECEIPT) {
+
+            if (kind === 'NVL') {
+                return 'NCC';
+            }
+
+            if (kind === 'TP') {
+                return 'XUONG';
+            }
+
+        } else {
+
+            if (kind === 'NVL') {
+                return 'XUONG';
+            }
+
+            if (kind === 'TP') {
+                return 'CHINHANH';
+            }
+        }
+
+        return '';
+    }
+
+
+    function updatePartners() {
+        const kind = warehouseKind();
+        const expected = expectedPartnerType();
+
+        if (IS_RECEIPT && kind === 'NVL') {
+
+            partnerLabel.textContent =
+                'Nhà cung cấp nguyên vật liệu *';
+
+        } else if (IS_RECEIPT && kind === 'TP') {
+
+            partnerLabel.textContent =
+                'Xưởng gia công giao thành phẩm *';
+
+        } else if (!IS_RECEIPT && kind === 'NVL') {
+
+            partnerLabel.textContent =
+                'Xưởng gia công nhận nguyên vật liệu *';
+
+        } else if (!IS_RECEIPT && kind === 'TP') {
+
+            partnerLabel.textContent =
+                'Chi nhánh nhận thành phẩm *';
+
+        } else {
+
+            partnerLabel.textContent = 'Đối tác *';
+
+            partnerHelp.textContent =
+                'Vui lòng chọn kho trước.';
+        }
+
+        for (const option of partner.options) {
+
+            if (!option.value) {
+                continue;
+            }
+
+            const allowed =
+                expected !== '' &&
+                option.dataset.type === expected;
+
+            option.hidden = !allowed;
+            option.disabled = !allowed;
+        }
+
+        const current = partner.selectedOptions[0];
+
+        if (
+            current &&
+            current.value &&
+            current.disabled
+        ) {
+            partner.value = '';
+        }
+    }
+
+
+    // =====================================
+    // TON KHO THEO HANG HOA
+    // =====================================
+
+    function stockForGood(line) {
+        const good = selectedGood(line);
+
+        if (!good || !warehouse.value) {
+            return [];
+        }
+
+        return stockRows.filter(row => (
+            String(row.hang_hoa_id) === good.value &&
+
+            String(
+                row.vi_tri__ke__khu_vuc__kho_id
+            ) === warehouse.value &&
+
+            Number(row.so_luong_ton) > 0
+        ));
+    }
+
+
+    // =====================================
+    // LOC HANG HOA
+    // =====================================
+
+    function filterGoods(line) {
+        const kind = warehouseKind();
+        const state = currentLockState();
+
+        const goodsSelect =
+            line.querySelector('.good');
+
+        if (!goodsSelect) {
+            return;
+        }
+
+        for (const option of goodsSelect.options) {
+
+            if (!option.value) {
+                continue;
+            }
+
+            if (!option.dataset.originalText) {
+                option.dataset.originalText =
+                    option.textContent
+                        .replace(/\s+/g, ' ')
+                        .trim();
+            }
+
+            const sameKind =
+                kind !== '' &&
+                option.dataset.kind === kind;
+
+            // Chi khoa ca ma hang neu:
+            // - Kiem ke toan bo
+            // - Khoa tam cu khong co vi tri
+            //
+            // Kiem ke mot phan theo vi tri:
+            // KHONG khoa ca ma hang.
+
+
+const possiblePositions = Array.from(
+    line.querySelector('.pos').options
+).filter(pos => {
+
+    if (
+        !pos.value ||
+        pos.dataset.kho !== warehouse.value
+    ) {
+        return false;
+    }
+
+    // Nhap kho: chi cac vi tri thuoc ke mac dinh
+    if (IS_RECEIPT) {
+        return (
+            !!option.dataset.ke &&
+            pos.dataset.ke === option.dataset.ke
+        );
+    }
+
+    // Xuat kho: chi cac vi tri dang co ton
+    return stockRows.some(row => (
+        String(row.hang_hoa_id) === option.value &&
+        String(row.vi_tri_id) === pos.value &&
+        String(
+            row.vi_tri__ke__khu_vuc__kho_id
+        ) === warehouse.value &&
+        Number(row.so_luong_ton) > 0
+    ));
+});
+
+// Neu tat ca vi tri phu hop deu dang kiem ke
+// thi vo hieu hoa lua chon ma hang.
+const allPositionsLocked =
+    possiblePositions.length > 0 &&
+    possiblePositions.every(pos =>
+        isPositionLocked(
+            option.value,
+            pos.value,
+            state
+        )
+    );
+
+const isLocked =
+    sameKind &&
+    (
+        isGoodLocked(option.value, state) ||
+        allPositionsLocked
+    );
+
+
+            option.hidden = !sameKind;
+
+            option.disabled =
+                !sameKind || isLocked;
+
+            option.textContent = isLocked
+                ? option.dataset.originalText +
+                  ' — ĐANG KIỂM KHO'
+                : option.dataset.originalText;
+
+            option.style.color = isLocked
+                ? '#94A3B8'
+                : '';
+
+            option.style.backgroundColor = isLocked
+                ? '#F1F5F9'
+                : '';
+
+            option.title = isLocked
+                ? 'Hàng hóa đang bị khóa kiểm kho.'
+                : '';
+        }
+
+        let hint = line.querySelector(
+            '.stockcheck-goods-hint'
+        );
+
+        if (!hint) {
+            hint = document.createElement('p');
+
+            hint.className =
+                'stockcheck-goods-hint text-xs text-slate-500 mt-1';
+
+            goodsSelect.insertAdjacentElement(
+                'afterend',
+                hint
+            );
+        }
+
+        const hasLocks =
+            state.full ||
+            state.pairs.size > 0 ||
+            state.legacyGoods.size > 0 ||
+            state.positions.size > 0;
+
+        hint.hidden = !hasLocks;
+
+hint.hidden = true;
+hint.textContent = '';
+
+        const selected =
+            goodsSelect.selectedOptions[0];
+
+        if (
+            selected &&
+            selected.value &&
+            selected.disabled
+        ) {
+            goodsSelect.value = '';
+        }
+    }
+
+
+    // =====================================
+    // DON GIA TU DONG
+    // =====================================
+
+    function updatePrice(line) {
+        const good = selectedGood(line);
+
+        line.querySelector('.unit-price').value =
+            good
+                ? displayNumber(
+                    good.dataset.price || ''
+                )
+                : '';
+
+        calculateTotals();
+    }
+
+
+    // =====================================
+    // KE MAC DINH / KE CO TON
+    // =====================================
+
+    function updateRacks(line, preferredRackId = '') {
+        const good = selectedGood(line);
+
+        if (IS_RECEIPT) {
+
+            const display =
+                line.querySelector('.rack-display');
+
+            display.value = good
+                ? (
+                    good.dataset.rackName ||
+                    'Chưa gán kệ mặc định'
+                )
+                : '';
+
+            return;
+        }
+
+        const rackSelect =
+            line.querySelector('.rack-select');
+
+        const previousRackId =
+            preferredRackId || rackSelect.value;
+
+        rackSelect.innerHTML =
+            '<option value="">-- Chọn kệ --</option>';
+
+        const racks = new Map();
+
+        for (const row of stockForGood(line)) {
+
+            const rackId =
+                String(row.vi_tri__ke_id);
+
+            if (!racks.has(rackId)) {
+                racks.set(
+                    rackId,
+                    row.vi_tri__ke__ten_ke
+                );
+            }
+        }
+
+        for (const [rackId, rackName] of racks) {
+
+            const option =
+                document.createElement('option');
+
+            option.value = rackId;
+            option.textContent = rackName;
+
+            rackSelect.appendChild(option);
+        }
+
+        if (racks.has(previousRackId)) {
+            rackSelect.value = previousRackId;
+
+        } else if (racks.size === 1) {
+            rackSelect.value =
+                racks.keys().next().value;
+        }
+    }
+
+
+    // =====================================
+    // TANG / VI TRI
+    // =====================================
+
+    function updatePositions(line) {
+        const good = selectedGood(line);
+
+        const posSelect =
+            line.querySelector('.pos');
+
+        const rackId = IS_RECEIPT
+            ? (
+                good
+                    ? good.dataset.ke || ''
+                    : ''
+            )
+            : line.querySelector('.rack-select').value;
+
+        const availablePositions = IS_RECEIPT
+            ? null
+            : new Set(
+                stockForGood(line)
+                    .filter(row =>
+                        String(row.vi_tri__ke_id) === rackId
+                    )
+                    .map(row =>
+                        String(row.vi_tri_id)
+                    )
+            );
+
+        const state = currentLockState();
+
+        const goodId = good ? good.value : '';
+
+        let allowedCount = 0;
+        let onlyPositionId = '';
+
+        let lockedCount = 0;
+
+        for (const option of posSelect.options) {
+
+            if (!option.value) {
+                continue;
+            }
+
+            // Luu nhan goc de khong bi lap chu
+            if (!option.dataset.originalText) {
+                option.dataset.originalText =
+                    option.textContent.trim();
+            }
+
+            const allowed =
+                option.dataset.kho === warehouse.value &&
+
+                rackId !== '' &&
+
+                option.dataset.ke === rackId &&
+
+                (
+                    IS_RECEIPT ||
+                    availablePositions.has(option.value)
+                );
+
+            const locked =
+                allowed &&
+                isPositionLocked(
+                    goodId,
+                    option.value,
+                    state
+                );
+
+            // Chi an nhung vi tri khong hop le.
+            // Vi tri bi khoa van hien thi mau xam.
+            option.hidden = !allowed;
+
+            option.disabled =
+                !allowed || locked;
+
+            option.textContent = locked
+                ? option.dataset.originalText +
+                  ' — ĐANG KIỂM KHO'
+                : option.dataset.originalText;
+
+            option.style.color = locked
+                ? '#94A3B8'
+                : '';
+
+            option.style.backgroundColor = locked
+                ? '#F1F5F9'
+                : '';
+
+            option.title = locked
+                ? 'Sản phẩm tại vị trí này đang được kiểm kho.'
+                : '';
+
+            if (locked) {
+                lockedCount++;
+            }
+
+            if (allowed && !locked) {
+                allowedCount++;
+                onlyPositionId = option.value;
+            }
+        }
+
+        const current =
+            posSelect.selectedOptions[0];
+
+        if (
+            current &&
+            current.value &&
+            current.disabled
+        ) {
+            posSelect.value = '';
+        }
+
+        // Tu dong chon neu chi co mot vi tri
+        // hop le va khong bi khoa
+        if (
+            !posSelect.value &&
+            allowedCount === 1
+        ) {
+            posSelect.value = onlyPositionId;
+        }
+
+        // Hien thi ghi chu neu co vi tri bi khoa
+        const hint = line.querySelector(
+            '.position-lock-hint'
+        );
+
+        if (hint) {
+
+            hint.classList.toggle(
+                'hidden',
+                lockedCount === 0
+            );
+
+            hint.textContent =
+                lockedCount > 0
+                    ? (
+                        'Có ' + lockedCount +
+                        ' vị trí đang kiểm kho. '
+                    )
+                    : '';
+        }
+
+        updateAvailable(line);
+    }
+
+
+    // =====================================
+    // TON KHO TAI VI TRI
+    // =====================================
+
+    function updateAvailable(line) {
+        if (IS_RECEIPT) {
+            return;
+        }
+
+        const good = selectedGood(line);
+
+        const posId =
+            line.querySelector('.pos').value;
+
+        let available = 0;
+
+        if (good && posId) {
+
+            const row = stockForGood(line).find(
+                item =>
+                    String(item.vi_tri_id) === posId
+            );
+
+            available = row
+                ? Number(row.so_luong_ton)
+                : 0;
+        }
+
+        line.querySelector('.available-stock').value =
+            displayNumber(available);
+
+        checkQuantities();
+    }
+
+
+    // =====================================
+    // THANH TIEN VA TONG TIEN
+    // =====================================
+
+    function calculateTotals() {
+        let sum = 0;
+
+        lines.querySelectorAll('.line').forEach(line => {
+
+            const qtyField =
+                line.querySelector('.quantity');
+
+            const priceField =
+                line.querySelector('.unit-price');
+
+            const qty = Number(qtyField.value);
+            const price = Number(priceField.value);
+
+            const valid =
+                qtyField.value !== '' &&
+                priceField.value !== '' &&
+                Number.isFinite(qty) &&
+                Number.isFinite(price) &&
+                qty > 0 &&
+                price >= 0;
+
+            const amount = valid
+                ? qty * price
+                : 0;
+
+            line.querySelector('.line-total').textContent =
+                formatMoney(amount);
+
+            sum += amount;
+        });
+
+        grandTotal.textContent =
+            formatMoney(sum);
+    }
+
+
+    // =====================================
+    // KIEM TRA XUAT VUOT TON
+    // =====================================
+
+    function checkQuantities() {
+        if (IS_RECEIPT) {
+            return true;
+        }
+
+        const grouped = new Map();
+        let valid = true;
+
+        const rows =
+            lines.querySelectorAll('.line');
+
+        rows.forEach(line => {
+
+            const goodId =
+                line.querySelector('.good').value;
+
+            const posId =
+                line.querySelector('.pos').value;
+
+            const qtyField =
+                line.querySelector('.quantity');
+
+            const warning =
+                line.querySelector('.stock-warning');
+
+            warning.textContent = '';
+
+            if (
+                !goodId ||
+                !posId ||
+                !qtyField.value
+            ) {
+                return;
+            }
+
+            const qty = Number(qtyField.value);
+
+            if (
+                !Number.isFinite(qty) ||
+                qty <= 0
+            ) {
+                return;
+            }
+
+            const key =
+                goodId + ':' + posId;
+
+            grouped.set(
+                key,
+                (grouped.get(key) || 0) + qty
+            );
+        });
+
+        rows.forEach(line => {
+
+            const goodId =
+                line.querySelector('.good').value;
+
+            const posId =
+                line.querySelector('.pos').value;
+
+            if (!goodId || !posId) {
+                return;
+            }
+
+            const requested =
+                grouped.get(goodId + ':' + posId) || 0;
+
+            const available = Number(
+                line.querySelector('.available-stock').value
+            );
+
+            if (requested > available) {
+                valid = false;
+
+                line.querySelector('.stock-warning').textContent =
+                    'Số lượng xuất tại vị trí này vượt tồn. ' +
+                    'Tổng yêu cầu: ' + requested +
+                    ', tồn hiện tại: ' + available + '.';
+            }
+        });
+
+        return valid;
+    }
+
+
+    // =====================================
+    // THEM DONG
+    // =====================================
+
+    function addLine(prefill = null) {
+
+        if (lines.children.length >= 100) {
+            alert('Một phiếu tối đa 100 dòng hàng.');
+            return;
+        }
+
+        const line = lineTemplate.content
+            .firstElementChild.cloneNode(true);
+
+        lines.appendChild(line);
+
+        const goodSelect =
+            line.querySelector('.good');
+
+        const posSelect =
+            line.querySelector('.pos');
+
+        // Chi hien thi ten tang, giu ID goc
+        posSelect.querySelectorAll('option').forEach(option => {
+
+            if (!option.value) {
+                return;
+            }
+
+            const match =
+                option.textContent.match(/Tầng\s*(\d+)/i);
+
+            if (match) {
+                option.textContent =
+                    'Tầng ' + Number(match[1]);
+            }
+        });
+
+        const qtyField =
+            line.querySelector('.quantity');
+
+        const preferredPositionId = prefill
+            ? String(prefill.vi_tri || '')
+            : '';
+
+        filterGoods(line);
+
+        if (prefill) {
+            goodSelect.value =
+                String(prefill.hang_hoa || '');
+        }
+
+        filterGoods(line);
+
+        const preferredPositionOption =
+            Array.from(posSelect.options).find(
+                option =>
+                    option.value === preferredPositionId
+            );
+
+        const preferredRackId =
+            preferredPositionOption
+                ? preferredPositionOption.dataset.ke || ''
+                : '';
+
+        updatePrice(line);
+        updateRacks(line, preferredRackId);
+        updatePositions(line);
+
+        if (preferredPositionId) {
+
+            const preferredOption =
+                Array.from(posSelect.options).find(
+                    option =>
+                        option.value === preferredPositionId
+                );
+
+            if (
+                preferredOption &&
+                !preferredOption.disabled
+            ) {
+                posSelect.value = preferredPositionId;
+            } else {
+                posSelect.value = '';
+            }
+        }
+
+        updateAvailable(line);
+
+        if (prefill) {
+            qtyField.value =
+                displayNumber(prefill.so_luong);
+        }
+
+        goodSelect.addEventListener('change', () => {
+
+            posSelect.value = '';
+
+            updatePrice(line);
+            updateRacks(line);
+            updatePositions(line);
+            calculateTotals();
+            checkQuantities();
+        });
+
+        if (!IS_RECEIPT) {
+
+            line.querySelector('.rack-select')
+                .addEventListener('change', () => {
+
+                    posSelect.value = '';
+
+                    updatePositions(line);
+                    checkQuantities();
+                });
+        }
+
+        posSelect.addEventListener('change', () => {
+
+            updateAvailable(line);
+            checkQuantities();
+        });
+
+        qtyField.addEventListener('input', () => {
+
+            calculateTotals();
+            checkQuantities();
+        });
+
+        calculateTotals();
+        checkQuantities();
+    }
+
+
+    // =====================================
+    // XOA DONG
+    // =====================================
+
+    function removeLine(button) {
+
+        if (lines.children.length <= 1) {
+            alert('Phiếu cần ít nhất một dòng hàng.');
+            return;
+        }
+
+        button.closest('.line').remove();
+
+        calculateTotals();
+        checkQuantities();
+    }
+
+
+    // =====================================
+    // DOI KHO
+    // =====================================
+
+    warehouse.addEventListener('change', () => {
+
+        if (IS_EDIT) {
+            return;
+        }
+
+        partner.value = '';
+        updatePartners();
+
+        lines.querySelectorAll('.line').forEach(line => {
+
+            line.querySelector('.good').value = '';
+            line.querySelector('.pos').value = '';
+
+            filterGoods(line);
+            updatePrice(line);
+            updateRacks(line);
+            updatePositions(line);
+            checkQuantities();
+        });
+
+        calculateTotals();
+    });
+
+
+    // =====================================
+    // KIEM TRA TRUOC KHI LUU
+    // =====================================
+
+    form.addEventListener('submit', event => {
+
+        function reject(message, field = null) {
+
+            event.preventDefault();
+            alert(message);
+
+            if (field) {
+                field.focus();
+            }
+        }
+
+        if (!warehouse.value) {
+            reject(
+                'Vui lòng chọn kho.',
+                warehouse
+            );
+            return;
+        }
+
+        const selectedPartner =
+            partner.selectedOptions[0];
+
+        if (
+            !partner.value ||
+            !selectedPartner ||
+            selectedPartner.dataset.type !==
+                expectedPartnerType()
+        ) {
+            reject(
+                !IS_RECEIPT && warehouseKind() === 'TP'
+                    ? 'Vui lòng chọn chi nhánh nhận thành phẩm hợp lệ.'
+                    : 'Vui lòng chọn đúng đối tác theo loại kho.',
+                partner
+            );
+            return;
+        }
+
+        if (!lines.children.length) {
+            reject('Phiếu cần ít nhất một dòng hàng.');
+            return;
+        }
+
+        const state = currentLockState();
+
+        for (const line of lines.querySelectorAll('.line')) {
+
+            const good =
+                line.querySelector('.good');
+
+            const position =
+                line.querySelector('.pos');
+
+            const quantity =
+                line.querySelector('.quantity');
+
+            const price =
+                line.querySelector('.unit-price');
+
+            const goodOption =
+                good.selectedOptions[0];
+
+            const positionOption =
+                position.selectedOptions[0];
+
+            if (
+                !good.value ||
+                !position.value ||
+                !goodOption ||
+                !positionOption ||
+                goodOption.disabled ||
+                positionOption.disabled
+            ) {
+                reject(
+                    'Vui lòng chọn hàng hóa và vị trí hợp lệ.',
+                    good
+                );
+                return;
+            }
+
+            // KIEM TRA DUNG HANG HOA + VI TRI
+            if (
+                isPositionLocked(
+                    good.value,
+                    position.value,
+                    state
+                )
+            ) {
+                reject(
+                    'Sản phẩm tại vị trí đã chọn ' +
+                    'đang được kiểm kho. ' +
+                    'Vui lòng chọn vị trí khác.',
+                    position
+                );
+                return;
+            }
+
+            if (IS_RECEIPT) {
+
+                const assignedRack =
+                    goodOption.dataset.ke || '';
+
+                if (
+                    !assignedRack ||
+                    positionOption.dataset.ke !== assignedRack
+                ) {
+                    reject(
+                        'Hàng hóa chưa có kệ mặc định ' +
+                        'hoặc vị trí nhập không đúng kệ.',
+                        good
+                    );
+                    return;
+                }
+
+            } else {
+
+                const chosenRack =
+                    line.querySelector('.rack-select').value;
+
+                if (
+                    !chosenRack ||
+                    positionOption.dataset.ke !== chosenRack
+                ) {
+                    reject(
+                        'Vui lòng chọn kệ và tầng đang có hàng.',
+                        position
+                    );
+                    return;
+                }
+            }
+
+            const qty =
+                Number(quantity.value);
+
+            const unitPrice =
+                Number(price.value);
+
+            if (
+                !quantity.value ||
+                !Number.isFinite(qty) ||
+                qty <= 0 ||
+                !quantity.validity.valid
+            ) {
+                reject(
+                    'Số lượng phải lớn hơn 0 và có ' +
+                    'tối đa 2 chữ số thập phân.',
+                    quantity
+                );
+                return;
+            }
+
+            if (
+                !price.value ||
+                !Number.isFinite(unitPrice) ||
+                unitPrice < 0 ||
+                !price.validity.valid
+            ) {
+                reject(
+                    'Hàng hóa chưa có đơn giá hợp lệ trong danh mục.',
+                    good
+                );
+                return;
+            }
+        }
+
+        if (!checkQuantities()) {
+            reject(
+                'Số lượng xuất vượt tồn tại vị trí.'
+            );
+            return;
+        }
+
+        saveButton.disabled = true;
+        saveButton.textContent = 'Đang lưu phiếu...';
+    });
+
+
+    // ============================================
+    // TU DONG CAP NHAT KHOA KIEM KHO
+    // ============================================
+
+    let lockRequest = null;
+    let isCheckingSubmit = false;
+    let allowCheckedSubmit = false;
+
+
+    // Cap nhat lai hang hoa va cac vi tri
+    function updateLockedPositionsOnScreen() {
+
+        let clearedSelection = false;
+
+        lines.querySelectorAll('.line').forEach(line => {
+
+            const goodSelect =
+                line.querySelector('.good');
+
+            const posSelect =
+                line.querySelector('.pos');
+
+            const previousGood =
+                goodSelect.value;
+
+            const previousPosition =
+                posSelect.value;
+
+            filterGoods(line);
+
+            // Neu kho hoac ma hang bi khoa toan bo
+            if (
+                previousGood &&
+                !goodSelect.value
+            ) {
+                clearedSelection = true;
+
+                posSelect.value = '';
+
+                updatePrice(line);
+                updateRacks(line);
+            }
+
+            // Cap nhat tung vi tri dang bi khoa
+            updatePositions(line);
+
+            // Neu vi tri dang chon vua bi khoa,
+            // bo chon vi tri nhung GIU nguyen ma hang.
+            if (
+                previousPosition &&
+                !posSelect.value
+            ) {
+                clearedSelection = true;
+            }
+
+            updateAvailable(line);
+        });
+
+        calculateTotals();
+        checkQuantities();
+
+        return clearedSelection;
+    }
+
+
+    // Lay khoa moi nhat tu backend
+    async function refreshDocumentLocks() {
+
+        if (lockRequest) {
+            return lockRequest;
+        }
+
+        lockRequest = (async () => {
+
+            const response = await fetch(
+                lockStatusUrl,
+                {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    'Không lấy được trạng thái khóa kiểm kho.'
+                );
+            }
+
+            const data = await response.json();
+
+            if (
+                data.ok !== true ||
+                !data.locked_stock_positions_by_warehouse ||
+                typeof data.locked_stock_positions_by_warehouse !== 'object'
+            ) {
+                throw new Error(
+                    'Dữ liệu khóa theo vị trí không hợp lệ.'
+                );
+            }
+
+            // Xoa trang thai khoa cu
+            Object.keys(
+                lockedPositionsByWarehouse
+            ).forEach(key => {
+
+                delete lockedPositionsByWarehouse[key];
+            });
+
+            // Nhan du lieu khoa moi
+            Object.assign(
+                lockedPositionsByWarehouse,
+                data.locked_stock_positions_by_warehouse
+            );
+
+            const clearedSelection =
+                updateLockedPositionsOnScreen();
+
+            if (clearedSelection) {
+
+                showDocumentLockMessage(
+                    'Một vị trí bạn đang chọn vừa ' +
+                    'được đưa vào kiểm kho. ' +
+                    'Hệ thống đã bỏ chọn vị trí đó. ' +
+                    'Bạn có thể chọn vị trí khác ' +
+                    'của cùng sản phẩm.'
+                );
+
+            } else {
+
+                showDocumentLockMessage('');
+            }
+
+            return {
+                ok: true,
+                clearedSelection: clearedSelection
+            };
+
+        })().catch(error => {
+
+            showDocumentLockMessage(
+                'Không thể cập nhật trạng thái kiểm kho. ' +
+                'Vui lòng kiểm tra kết nối trước khi lưu phiếu.'
+            );
+
+            console.error(
+                'Stockcheck lock error:',
+                error
+            );
+
+            return {
+                ok: false,
+                clearedSelection: false
+            };
+
+        }).finally(() => {
+
+            lockRequest = null;
+        });
+
+        return lockRequest;
+    }
+
+
+    // =====================================
+    // KIEM TRA KHOA TRUOC KHI LUU
+    // =====================================
+
+    form.addEventListener(
+        'submit',
+        async function(event) {
+
+            if (allowCheckedSubmit) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            if (isCheckingSubmit) {
+                return;
+            }
+
+            isCheckingSubmit = true;
+            saveButton.disabled = true;
+
+            try {
+                const result =
+                    await refreshDocumentLocks();
+
+                if (!result.ok) {
+
+                    alert(
+                        'Chưa kiểm tra được trạng thái khóa. ' +
+                        'Vui lòng thử lại.'
+                    );
+
+                    return;
+                }
+
+                if (result.clearedSelection) {
+
+                    alert(
+                        'Một vị trí vừa bị khóa do kiểm kho. ' +
+                        'Vui lòng chọn lại vị trí hợp lệ.'
+                    );
+
+                    return;
+                }
+
+                const state = currentLockState();
+
+                // Chi chan khi trung dung hang hoa + vi tri
+                const hasLockedPosition = Array.from(
+                    lines.querySelectorAll('.line')
+                ).some(line => {
+
+                    const goodId =
+                        line.querySelector('.good').value;
+
+                    const posId =
+                        line.querySelector('.pos').value;
+
+                    return isPositionLocked(
+                        goodId,
+                        posId,
+                        state
+                    );
+                });
+
+                if (hasLockedPosition) {
+
+                    alert(
+                        'Phiếu có sản phẩm tại vị trí ' +
+                        'đang được kiểm kho. ' +
+                        'Vui lòng chọn vị trí khác.'
+                    );
+
+                    return;
+                }
+
+                // Cho phep thuc hien validation cu
+                allowCheckedSubmit = true;
+
+                saveButton.disabled = false;
+
+                try {
+                    form.requestSubmit(saveButton);
+                } finally {
+                    allowCheckedSubmit = false;
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    'Không thể kiểm tra khóa kiểm kho. ' +
+                    'Vui lòng thử lại.'
+                );
+
+            } finally {
+
+                isCheckingSubmit = false;
+
+                if (
+                    saveButton.textContent.trim() !==
+                    'Đang lưu phiếu...'
+                ) {
+                    saveButton.disabled = false;
+                }
+            }
+        },
+        true
+    );
+
+
+    // =====================================
+    // KHOI TAO TRANG
+    // =====================================
+
+    window.addLine = addLine;
+    window.removeLine = removeLine;
+
+    const restoredWarehouseId =
+        '{{ selected_warehouse_id|default:""|escapejs }}';
+
+    if (
+        restoredWarehouseId &&
+        Array.from(warehouse.options).some(
+            option =>
+                option.value === restoredWarehouseId
+        )
+    ) {
+        warehouse.value = restoredWarehouseId;
+
+    } else if (!warehouse.value) {
+
+        const selectedKind =
+            '{{ selected_kind|default:""|escapejs }}';
+
+        const byKind =
+            Array.from(warehouse.options).find(
+                option =>
+                    option.dataset.kind === selectedKind &&
+                    option.value
+            );
+
+        if (byKind) {
+            warehouse.value = byKind.value;
+        }
+    }
+
+    updatePartners();
+
+    if (
+        Array.isArray(initialDocumentLines) &&
+        initialDocumentLines.length
+    ) {
+        initialDocumentLines.forEach(
+            prefill => addLine(prefill)
+        );
+
+    } else {
+
+        addLine();
+    }
+
+
+    // =====================================
+    // CAP NHAT KHOA DINH KY
+    // =====================================
+
+    setInterval(() => {
+
+        if (
+            document.visibilityState === 'visible'
+        ) {
+            refreshDocumentLocks();
+        }
+
+    }, 4000);
+
+
+    document.addEventListener(
+        'visibilitychange',
+        () => {
+
+            if (
+                document.visibilityState === 'visible'
+            ) {
+                refreshDocumentLocks();
+            }
+        }
+    );
+
+
+    window.addEventListener(
+        'focus',
+        refreshDocumentLocks
+    );
+
+
+    // Kiem tra ngay khi mo trang
+    refreshDocumentLocks();
+
+})();
+</script>
+
+{% endblock %}

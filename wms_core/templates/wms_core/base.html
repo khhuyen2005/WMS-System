@@ -1,0 +1,805 @@
+
+{% load static %}
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{% block title %}XONXEN SHOP | Quản lý kho{% endblock %}</title>
+
+    <link rel="icon"
+          href="{% static 'wms_core/images/xonxen-logo.png' %}"
+          type="image/png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        :root {
+            --orange: #E86A20;
+            --orange-dark: #A84313;
+            --orange-hover: #C85C23;
+            --orange-soft: #FFF3EA;
+            --orange-border: #F0D8C8;
+            --text-primary: #493426;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #FFF9F5;
+            color: var(--text-primary);
+            font-family: "Be Vietnam Pro", Arial, sans-serif;
+            font-size: 13px;
+        }
+
+        button, input, select, textarea {
+            font: inherit;
+        }
+
+        /* SIDEBAR */
+        .side {
+            width: 278px;
+            flex-shrink: 0;
+            min-height: 100vh;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: linear-gradient(
+                180deg,
+                #A84313 0%,
+                #94370F 100%
+            );
+            color: white;
+            padding: 16px 11px;
+        }
+
+        .brand {
+            text-align: center;
+            padding: 15px 9px 19px;
+            border-bottom: 1px solid rgba(255,255,255,.20);
+            margin-bottom: 15px;
+        }
+
+        .brand-logo {
+            display: block;
+            width: 130px;
+            max-height: 105px;
+            object-fit: contain;
+            border-radius: 12px;
+            margin: 0 auto 12px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: .4px;
+        }
+
+        .brand-subtitle {
+            margin-top: 7px;
+            font-size: 10px;
+            color: #FFE2D1;
+            font-weight: 600;
+            letter-spacing: .5px;
+            line-height: 1.6;
+        }
+
+        /* MENU */
+        .nav-home {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 13px;
+            border-radius: 10px;
+            color: #FFF0E7;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: .2s;
+            margin-bottom: 8px;
+        }
+
+        .nav-home:hover,
+        .nav-home.active {
+            background: #D96D35;
+            color: white;
+        }
+
+        .nav-home i {
+            width: 19px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .nav-group {
+            margin: 5px 0;
+            border-radius: 11px;
+        }
+
+        .nav-group summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 13px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #FFF3EB;
+            font-weight: 700;
+            font-size: 12px;
+            line-height: 1.5;
+            transition: background .2s;
+            user-select: none;
+        }
+
+        .nav-group summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .nav-group summary::marker {
+            content: "";
+        }
+
+        .nav-group summary:hover {
+            background: rgba(255,255,255,.12);
+        }
+
+        .nav-group[open] > summary {
+            background: #C85C23;
+            color: white;
+        }
+
+        .nav-group .group-icon {
+            width: 19px;
+            font-size: 15px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .group-title {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .group-arrow {
+            font-size: 10px;
+            color: #FFE0CE;
+            transition: transform .2s;
+        }
+
+        .nav-group[open] .group-arrow {
+            transform: rotate(90deg);
+        }
+
+        .nav-submenu {
+            padding: 5px 0 8px 16px;
+            border-left: 1px solid rgba(255,255,255,.20);
+            margin: 4px 0 8px 20px;
+        }
+
+        .nav-submenu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 10px;
+            border-radius: 8px;
+            color: #FFE6D8;
+            text-decoration: none;
+            font-size: 11.5px;
+            line-height: 1.6;
+            font-weight: 500;
+            transition: .2s;
+            margin-bottom: 2px;
+        }
+
+        .nav-submenu a i {
+            width: 15px;
+            text-align: center;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .nav-submenu a:hover,
+        .nav-submenu a.active {
+            color: white;
+            background: rgba(255,255,255,.17);
+        }
+
+        .nav-submenu a.active {
+            font-weight: 700;
+            border-left: 3px solid #FFD0AD;
+        }
+
+        .side-divider {
+            height: 1px;
+            background: rgba(255,255,255,.17);
+            margin: 14px 6px;
+        }
+
+        .side-footer {
+            padding: 12px 9px 4px;
+            color: #FCD2BE;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .side::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .side::-webkit-scrollbar-thumb {
+            background: #D78253;
+            border-radius: 20px;
+        }
+
+        /* MAIN CONTENT */
+        .page-container {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .top-header {
+            background: white;
+            border-bottom: 1px solid #F2DDD0;
+        }
+
+        .brand-title {
+            color: #A84313;
+            font-weight: 800;
+        }
+
+        /* COMMON UI */
+        .box {
+            background: white;
+            border: 1px solid var(--orange-border);
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(169,72,18,.05);
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--orange);
+            color: white;
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn:hover {
+            background: var(--orange-dark);
+            color: white;
+        }
+
+        .btn2 {
+            display: inline-block;
+            background: white;
+            color: #A74715;
+            border: 1px solid #EAC5AB;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn2:hover {
+            background: var(--orange-soft);
+        }
+
+        .tag {
+            display: inline-block;
+            border-radius: 30px;
+            padding: 4px 9px;
+            background: #FFF0E4;
+            color: #A74715;
+            font-size: 12px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .table th {
+            background: #FFF3EA;
+            color: #824321;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .table th,
+        .table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid #F4E5DA;
+            vertical-align: middle;
+        }
+
+        .table tr:hover td {
+            background: #FFFAF6;
+        }
+
+        .field {
+            padding: 9px;
+            border: 1px solid #E8CEBD;
+            border-radius: 8px;
+            background: white;
+            width: 100%;
+        }
+
+        .field:focus {
+            outline: 2px solid #F5A16C;
+            border-color: var(--orange);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #70442D;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        input, select, textarea {
+            max-width: 100%;
+        }
+
+        /* MOBILE */
+        @media (max-width: 900px) {
+            .wms-layout {
+                flex-direction: column;
+            }
+
+            .side {
+                width: 100%;
+                min-height: auto;
+                height: auto;
+                max-height: 45vh;
+                position: relative;
+            }
+
+            .brand {
+                padding: 8px;
+            }
+
+            .brand-logo {
+                max-height: 65px;
+            }
+
+            .top-header {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .page-main {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="wms-layout min-h-screen flex">
+
+    <!-- ====================================== -->
+    <!-- SIDEBAR XONXEN SHOP -->
+    <!-- ====================================== -->
+    <aside class="side">
+
+        <!-- THUONG HIEU -->
+        <div class="brand">
+            <img
+                src="{% static 'wms_core/images/xonxen-logo.png' %}"
+                alt="XONXEN SHOP"
+                class="brand-logo"
+                onerror="this.style.display='none'"
+            >
+
+            <div class="brand-name">
+                XONXEN SHOP
+            </div>
+
+            <div class="brand-subtitle">
+                HỆ THỐNG QUẢN LÝ KHO
+            </div>
+        </div>
+
+        <!-- TONG QUAN -->
+        <!-- TONG QUAN -->
+        <!-- CHỈ QUẢN LÝ MỚI THẤY MENU TỔNG QUAN -->
+        {% if is_manager %}
+        <a href="{% url 'wms_dashboard' %}" class="nav-home {% if section == 'dashboard' %}active{% endif %}">
+            <i class="fa-solid fa-chart-pie"></i>
+            Tổng quan
+        </a>
+        {% endif %}
+
+
+        <!-- ====================================== -->
+        <!-- KHO NGUYEN VAT LIEU -->
+        <!-- ====================================== -->
+
+        {% if allowed_kind != 'TP' %}
+
+        <details
+            class="nav-group"
+            {% if kind == 'NVL' and section == 'goods' %}open{% elif kind == 'NVL' and section == 'nhap' %}open{% elif kind == 'NVL' and section == 'xuat' %}open{% endif %}
+        >
+            <summary>
+                <i class="fa-solid fa-layer-group group-icon"></i>
+                <span class="group-title">
+                    Kho nguyên vật liệu
+                </span>
+                <i class="fa-solid fa-chevron-right group-arrow"></i>
+            </summary>
+
+            <div class="nav-submenu">
+
+                <a
+                    href="{% url 'wms_goods' 'NVL' %}"
+                    class="{% if section == 'goods' and kind == 'NVL' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-list"></i>
+                    Danh mục nguyên vật liệu
+                </a>
+
+                <a
+                    href="{% url 'wms_documents' 'nhap' %}?kind=NVL"
+                    class="{% if section == 'nhap' and kind == 'NVL' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                    Phiếu nhập nguyên vật liệu
+                </a>
+
+                <a
+                    href="{% url 'wms_documents' 'xuat' %}?kind=NVL"
+                    class="{% if section == 'xuat' and kind == 'NVL' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-file-export"></i>
+                    Phiếu xuất nguyên vật liệu
+                </a>
+
+            </div>
+        </details>
+
+        {% endif %}
+
+        <!-- ====================================== -->
+        <!-- KHO THANH PHAM -->
+        <!-- ====================================== -->
+
+        {% if allowed_kind != 'NVL' %}
+
+        <details
+            class="nav-group"
+            {% if kind == 'TP' and section == 'goods' %}open{% elif kind == 'TP' and section == 'nhap' %}open{% elif kind == 'TP' and section == 'xuat' %}open{% endif %}
+        >
+            <summary>
+                <i class="fa-solid fa-shirt group-icon"></i>
+                <span class="group-title">
+                    Kho thành phẩm
+                </span>
+                <i class="fa-solid fa-chevron-right group-arrow"></i>
+            </summary>
+
+            <div class="nav-submenu">
+
+                <a
+                    href="{% url 'wms_goods' 'TP' %}"
+                    class="{% if section == 'goods' and kind == 'TP' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-list"></i>
+                    Danh mục thành phẩm
+                </a>
+
+                <a
+                    href="{% url 'wms_documents' 'nhap' %}?kind=TP"
+                    class="{% if section == 'nhap' and kind == 'TP' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                    Phiếu nhập thành phẩm
+                </a>
+
+                <a
+                    href="{% url 'wms_documents' 'xuat' %}?kind=TP"
+                    class="{% if section == 'xuat' and kind == 'TP' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-file-export"></i>
+                    Phiếu xuất thành phẩm
+                </a>
+
+            </div>
+        </details>
+
+        {% endif %}
+
+
+        <!-- ====================================== -->
+        <!-- QUAN LY TON KHO -->
+        <!-- ====================================== -->
+
+        <details
+            class="nav-group"
+            {% if section == 'inventory' or section == 'positions' or section == 'counts' %}open{% endif %}
+        >
+            <summary>
+                <i class="fa-solid fa-warehouse group-icon"></i>
+                <span class="group-title">
+                    Quản lý tồn kho
+                </span>
+                <i class="fa-solid fa-chevron-right group-arrow"></i>
+            </summary>
+
+            <div class="nav-submenu">
+
+                <a
+                    href="{% url 'wms_inventory' %}"
+                    class="{% if section == 'inventory' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    Tồn kho tổng hợp
+                </a>
+
+                <a
+                    href="{% url 'wms_positions' %}"
+                    class="{% if section == 'positions' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-location-dot"></i>
+                    Khu vực và vị trí lưu trữ
+                </a>
+
+                <a
+                    href="{% url 'wms_stock_checks' %}"
+                    class="{% if section == 'counts' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    Kiểm kê kho
+                </a>
+
+            </div>
+        </details>
+
+
+        <!-- ====================================== -->
+        <!-- DANH MUC VA DU LIEU -->
+        <!-- DA BO SUNG DANH MUC CHI NHANH -->
+        <!-- ====================================== -->
+
+        <details
+            class="nav-group"
+            {% if section == 'partners' or section == 'branches' or section == 'import_excel' %}open{% endif %}
+        >
+            <summary>
+                <i class="fa-solid fa-database group-icon"></i>
+                <span class="group-title">
+                    Danh mục và dữ liệu
+                </span>
+                <i class="fa-solid fa-chevron-right group-arrow"></i>
+            </summary>
+
+            <div class="nav-submenu">
+
+                <!-- DOI TAC -->
+                <a
+                    href="{% url 'wms_partners' %}"
+                    class="{% if section == 'partners' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-building"></i>
+                    Danh mục đối tác
+                </a>
+
+                <!-- CHI NHANH -->
+                <a
+                    href="{% url 'wms_branches' %}"
+                    class="{% if section == 'branches' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-store"></i>
+                    Danh mục chi nhánh
+                </a>
+
+                <!-- NHAP EXCEL -->
+                <a
+                    href="{% url 'wms_import_excel' %}"
+                    class="{% if section == 'import_excel' %}active{% endif %}"
+                >
+                    <i class="fa-solid fa-file-excel"></i>
+                    Nhập dữ liệu Excel
+                </a>
+
+            </div>
+        </details>
+
+
+        <!-- ====================================== -->
+        <!-- NHAT KY GIAO DICH -->
+        <!-- ====================================== -->
+
+        {% if is_manager %}
+
+        <a
+            href="{% url 'wms_activity' %}"
+            class="nav-home {% if section == 'activity' %}active{% endif %}"
+        >
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            Nhật ký giao dịch
+        </a>
+
+        {% endif %}
+
+
+        <!-- ====================================== -->
+        <!-- TAI KHOAN -->
+        <!-- ====================================== -->
+
+        {% if is_manager %}
+
+        <a
+            href="{% url 'wms_users' %}"
+            class="nav-home {% if section == 'users' %}active{% endif %}"
+        >
+            <i class="fa-solid fa-users-gear"></i>
+            Tài khoản
+        </a>
+
+        {% endif %}
+
+
+        <div class="side-divider"></div>
+
+        <div class="side-footer">
+            XONXEN SHOP © 2026
+            <br>
+            Warehouse Management System
+        </div>
+
+    </aside>
+
+
+    <!-- ====================================== -->
+    <!-- NOI DUNG BEN PHAI -->
+    <!-- ====================================== -->
+
+    <div class="page-container">
+
+        <!-- HEADER -->
+        <header
+            class="top-header p-4 flex justify-between items-center sticky top-0 z-10"
+        >
+<div class="flex items-center gap-1 whitespace-nowrap">
+    <strong class="brand-title">XONXEN SHOP</strong>
+
+    <span class="text-slate-400 text-xs">
+        /
+    {% if section == 'dashboard' %}
+        Tổng quan
+
+    {% elif section == 'goods' %}
+        {% if kind == 'NVL' %}
+            Danh mục nguyên vật liệu
+        {% elif kind == 'TP' %}
+            Danh mục thành phẩm
+        {% endif %}
+
+    {% elif section == 'nhap' %}
+        {% if kind == 'NVL' %}
+            Phiếu nhập nguyên vật liệu
+        {% elif kind == 'TP' %}
+            Phiếu nhập thành phẩm
+        {% else %}
+            Phiếu nhập kho
+        {% endif %}
+
+    {% elif section == 'xuat' %}
+        {% if kind == 'NVL' %}
+            Phiếu xuất nguyên vật liệu
+        {% elif kind == 'TP' %}
+            Phiếu xuất thành phẩm
+        {% else %}
+            Phiếu xuất kho
+        {% endif %}
+
+    {% elif section == 'inventory' %}
+        Tồn kho tổng hợp
+
+    {% elif section == 'positions' %}
+        Khu vực và vị trí lưu trữ
+
+    {% elif section == 'counts' %}
+        Kiểm kê kho
+
+    {% elif section == 'partners' %}
+        Danh mục đối tác
+
+    {% elif section == 'branches' %}
+        Danh mục chi nhánh
+
+    {% elif section == 'import_excel' %}
+        Nhập dữ liệu Excel
+
+    {% elif section == 'activity' %}
+        Nhật ký giao dịch
+
+    {% elif section == 'users' %}
+        Quản lý tài khoản
+
+    {% elif section == 'report' %}
+        Báo cáo thống kê
+
+    {% elif section == 'thresholds' %}
+        Ngưỡng tồn kho
+
+    {% elif section == 'adjustments' %}
+        Điều chỉnh tồn kho
+
+    {% elif section == 'corrections' %}
+        Yêu cầu xử lý phiếu
+
+    {% else %}
+        Hệ thống quản lý kho
+    {% endif %}
+</span>
+
+            </div>
+
+            <div class="flex items-center gap-4">
+
+                <div class="text-right">
+                    <div class="font-semibold text-sm">
+                        {{ request.user.username }}
+                    </div>
+
+                    <div class="text-xs text-slate-500 mt-1">
+                        {{ role_name }}
+                    </div>
+                </div>
+
+                <form
+                    action="{% url 'logout' %}"
+                    method="post"
+                >
+                    {% csrf_token %}
+
+                    <button type="submit" class="btn2">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i>
+                        Đăng xuất
+                    </button>
+                </form>
+
+            </div>
+        </header>
+
+
+        <!-- PAGE CONTENT -->
+        <main class="page-main p-6 max-w-[1500px] mx-auto">
+
+            {% block content %}
+            {% endblock %}
+
+        </main>
+    </div>
+</div>
+
+</body>
+</html>
