@@ -24,6 +24,20 @@ except ImportError as exc:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _env_list(name, default=None):
+    value = os.environ.get(name)
+    if value is None:
+        return list(default or [])
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -31,10 +45,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', getattr(_local_settings, 'SECRET_KEY', 'django-insecure-development-only-change-before-deploy'))
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DJANGO_DEBUG', True)
 
+ALLOWED_HOSTS = _env_list(
+    'DJANGO_ALLOWED_HOSTS',
+    ['127.0.0.1', 'localhost', 'group216.online']
+)
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'group216.online']
+CSRF_TRUSTED_ORIGINS = _env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 
 
@@ -132,8 +150,6 @@ USE_TZ = True
 
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
@@ -159,3 +175,11 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'cartroniccare.work@gmail.com'
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', getattr(_local_settings, 'EMAIL_HOST_PASSWORD', ''))
 DEFAULT_FROM_EMAIL = 'XONXEN SHOP WMS <cartroniccare.work@gmail.com>'
+
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', True)
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '3600'))
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

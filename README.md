@@ -170,3 +170,7 @@ Khi triển khai thực tế, cần tắt `DEBUG`, đặt `ALLOWED_HOSTS` phù h
 ## Repository
 
 Mã nguồn được lưu tại: <https://github.com/khhuyen2005/WMS-System>
+
+## Triển khai miễn phí
+
+Xem hướng dẫn từng bước tại [DEPLOY_PYTHONANYWHERE.md](DEPLOY_PYTHONANYWHERE.md).
