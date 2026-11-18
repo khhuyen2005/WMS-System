@@ -20,7 +20,7 @@ Hệ thống quản lý kho (Warehouse Management System) dành cho XONXEN SHOP,
 - Django 5
 - SQLite
 - HTML/CSS/JavaScript với Django Templates
-- OpenPyXL, Pandas và Polars cho xử lý dữ liệu
+- OpenPyXL và Pandas cho xử lý dữ liệu
 - ReportLab cho xuất PDF
 
 ## Cấu trúc dự án
